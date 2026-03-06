@@ -21,3 +21,12 @@ func TestMessagesPrepareNilContentNoNullLiteral(t *testing.T) {
 		t.Fatalf("expected no null literal output, got %q", got)
 	}
 }
+
+func TestNormalizeContentArrayFallsBackToContentWhenTextEmpty(t *testing.T) {
+	got := NormalizeContent([]any{
+		map[string]any{"type": "text", "text": "", "content": "from-content"},
+	})
+	if got != "from-content" {
+		t.Fatalf("expected fallback to content when text is empty, got %q", got)
+	}
+}

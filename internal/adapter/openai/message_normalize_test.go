@@ -237,3 +237,23 @@ func TestNormalizeOpenAIMessagesForPrompt_DeveloperRoleMapsToSystem(t *testing.T
 		t.Fatalf("expected developer role converted to system, got %#v", normalized[0]["role"])
 	}
 }
+
+func TestNormalizeOpenAIMessagesForPrompt_AssistantArrayContentFallbackWhenTextEmpty(t *testing.T) {
+	raw := []any{
+		map[string]any{
+			"role": "assistant",
+			"content": []any{
+				map[string]any{"type": "text", "text": "", "content": "工具说明文本"},
+			},
+		},
+	}
+
+	normalized := normalizeOpenAIMessagesForPrompt(raw, "")
+	if len(normalized) != 1 {
+		t.Fatalf("expected one normalized message, got %d", len(normalized))
+	}
+	content, _ := normalized[0]["content"].(string)
+	if content != "工具说明文本" {
+		t.Fatalf("expected content fallback text preserved, got %q", content)
+	}
+}
