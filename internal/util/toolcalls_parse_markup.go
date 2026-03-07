@@ -15,7 +15,6 @@ var antmlArgumentPattern = regexp.MustCompile(`(?is)<(?:[a-z0-9_]+:)?argument\s+
 var antmlParametersPattern = regexp.MustCompile(`(?is)<(?:[a-z0-9_]+:)?parameters\s*>\s*(\{.*?\})\s*</(?:[a-z0-9_]+:)?parameters>`)
 var invokeCallPattern = regexp.MustCompile(`(?is)<invoke\s+name="([^"]+)"\s*>(.*?)</invoke>`)
 var invokeParamPattern = regexp.MustCompile(`(?is)<parameter\s+name="([^"]+)"\s*>\s*(.*?)\s*</parameter>`)
-var invokeArgumentPattern = regexp.MustCompile(`(?is)<argument(?:\s+name="([^"]+)")?\s*>\s*(.*?)\s*</argument>`)
 
 func parseXMLToolCalls(text string) []ParsedToolCall {
 	matches := xmlToolCallPattern.FindAllString(text, -1)
@@ -110,14 +109,6 @@ func parseSingleXMLToolCall(block string) (ParsedToolCall, bool) {
 			if tag == "tool" {
 				inTool = false
 			}
-		}
-	}
-	if fallback := parseMarkupSingleToolCall("", inner); fallback.Name != "" {
-		if strings.TrimSpace(name) == "" {
-			name = fallback.Name
-		}
-		if len(params) == 0 && strings.EqualFold(strings.TrimSpace(fallback.Name), strings.TrimSpace(name)) {
-			params = fallback.Input
 		}
 	}
 	if strings.TrimSpace(name) == "" {
@@ -216,23 +207,6 @@ func parseInvokeFunctionCallStyle(text string) (ParsedToolCall, bool) {
 		k := strings.TrimSpace(pm[1])
 		v := strings.TrimSpace(pm[2])
 		if k != "" {
-			input[k] = v
-		}
-	}
-	for _, am := range invokeArgumentPattern.FindAllStringSubmatch(m[2], -1) {
-		if len(am) < 3 {
-			continue
-		}
-		key := strings.TrimSpace(am[1])
-		raw := strings.TrimSpace(am[2])
-		if raw == "" {
-			continue
-		}
-		if key != "" {
-			input[key] = raw
-			continue
-		}
-		for k, v := range parseToolCallInput(raw) {
 			input[k] = v
 		}
 	}

@@ -271,6 +271,7 @@ func TestParseToolCallsSupportsMultipleAntmlFunctionCalls(t *testing.T) {
 		t.Fatalf("expected canonical names [bash read], got %#v", calls)
 	}
 }
+
 func TestParseToolCallsDoesNotAcceptMismatchedMarkupTags(t *testing.T) {
 	text := `<tool_call><name>read_file</function><arguments>{"path":"README.md"}</arguments></tool_call>`
 	calls := ParseToolCalls(text, []string{"read_file"})
