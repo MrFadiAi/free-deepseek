@@ -31,6 +31,7 @@ func RegisterRoutes(r chi.Router, h *Handler) {
 		pr.Get("/queue/status", h.queueStatus)
 		pr.Post("/accounts/test", h.testSingleAccount)
 		pr.Post("/accounts/test-all", h.testAllAccounts)
+		pr.Post("/accounts/sessions/delete-all", h.deleteAllSessions)
 		pr.Post("/import", h.batchImport)
 		pr.Post("/test", h.testAPI)
 		pr.Post("/vercel/sync", h.syncVercel)

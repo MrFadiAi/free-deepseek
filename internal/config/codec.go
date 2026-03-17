@@ -47,6 +47,7 @@ func (c Config) MarshalJSON() ([]byte, error) {
 	if strings.TrimSpace(c.Embeddings.Provider) != "" {
 		m["embeddings"] = c.Embeddings
 	}
+	m["auto_delete"] = c.AutoDelete
 	if c.VercelSyncHash != "" {
 		m["_vercel_sync_hash"] = c.VercelSyncHash
 	}
@@ -108,6 +109,10 @@ func (c *Config) UnmarshalJSON(b []byte) error {
 			if err := json.Unmarshal(v, &c.Embeddings); err != nil {
 				return fmt.Errorf("invalid field %q: %w", k, err)
 			}
+		case "auto_delete":
+			if err := json.Unmarshal(v, &c.AutoDelete); err != nil {
+				return fmt.Errorf("invalid field %q: %w", k, err)
+			}
 		case "_vercel_sync_hash":
 			if err := json.Unmarshal(v, &c.VercelSyncHash); err != nil {
 				return fmt.Errorf("invalid field %q: %w", k, err)
@@ -141,6 +146,7 @@ func (c Config) Clone() Config {
 		Toolcall:         c.Toolcall,
 		Responses:        c.Responses,
 		Embeddings:       c.Embeddings,
+		AutoDelete:       c.AutoDelete,
 		VercelSyncHash:   c.VercelSyncHash,
 		VercelSyncTime:   c.VercelSyncTime,
 		AdditionalFields: map[string]any{},

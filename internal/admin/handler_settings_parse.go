@@ -7,15 +7,30 @@ import (
 	"ds2api/internal/config"
 )
 
-func parseSettingsUpdateRequest(req map[string]any) (*config.AdminConfig, *config.RuntimeConfig, *config.ToolcallConfig, *config.ResponsesConfig, *config.EmbeddingsConfig, map[string]string, map[string]string, error) {
+func boolFrom(v any) bool {
+	if v == nil {
+		return false
+	}
+	switch x := v.(type) {
+	case bool:
+		return x
+	case string:
+		return strings.ToLower(strings.TrimSpace(x)) == "true"
+	default:
+		return false
+	}
+}
+
+func parseSettingsUpdateRequest(req map[string]any) (*config.AdminConfig, *config.RuntimeConfig, *config.ToolcallConfig, *config.ResponsesConfig, *config.EmbeddingsConfig, *config.AutoDeleteConfig, map[string]string, map[string]string, error) {
 	var (
-		adminCfg    *config.AdminConfig
-		runtimeCfg  *config.RuntimeConfig
-		toolcallCfg *config.ToolcallConfig
-		respCfg     *config.ResponsesConfig
-		embCfg      *config.EmbeddingsConfig
-		claudeMap   map[string]string
-		aliasMap    map[string]string
+		adminCfg       *config.AdminConfig
+		runtimeCfg     *config.RuntimeConfig
+		toolcallCfg    *config.ToolcallConfig
+		respCfg        *config.ResponsesConfig
+		embCfg         *config.EmbeddingsConfig
+		autoDeleteCfg  *config.AutoDeleteConfig
+		claudeMap      map[string]string
+		aliasMap       map[string]string
 	)
 
 	if raw, ok := req["admin"].(map[string]any); ok {
@@ -23,7 +38,7 @@ func parseSettingsUpdateRequest(req map[string]any) (*config.AdminConfig, *confi
 		if v, exists := raw["jwt_expire_hours"]; exists {
 			n := intFrom(v)
 			if n < 1 || n > 720 {
-				return nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("admin.jwt_expire_hours must be between 1 and 720")
+				return nil, nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("admin.jwt_expire_hours must be between 1 and 720")
 			}
 			cfg.JWTExpireHours = n
 		}
@@ -35,26 +50,26 @@ func parseSettingsUpdateRequest(req map[string]any) (*config.AdminConfig, *confi
 		if v, exists := raw["account_max_inflight"]; exists {
 			n := intFrom(v)
 			if n < 1 || n > 256 {
-				return nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("runtime.account_max_inflight must be between 1 and 256")
+				return nil, nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("runtime.account_max_inflight must be between 1 and 256")
 			}
 			cfg.AccountMaxInflight = n
 		}
 		if v, exists := raw["account_max_queue"]; exists {
 			n := intFrom(v)
 			if n < 1 || n > 200000 {
-				return nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("runtime.account_max_queue must be between 1 and 200000")
+				return nil, nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("runtime.account_max_queue must be between 1 and 200000")
 			}
 			cfg.AccountMaxQueue = n
 		}
 		if v, exists := raw["global_max_inflight"]; exists {
 			n := intFrom(v)
 			if n < 1 || n > 200000 {
-				return nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("runtime.global_max_inflight must be between 1 and 200000")
+				return nil, nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("runtime.global_max_inflight must be between 1 and 200000")
 			}
 			cfg.GlobalMaxInflight = n
 		}
 		if cfg.AccountMaxInflight > 0 && cfg.GlobalMaxInflight > 0 && cfg.GlobalMaxInflight < cfg.AccountMaxInflight {
-			return nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("runtime.global_max_inflight must be >= runtime.account_max_inflight")
+			return nil, nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("runtime.global_max_inflight must be >= runtime.account_max_inflight")
 		}
 		runtimeCfg = cfg
 	}
@@ -67,7 +82,7 @@ func parseSettingsUpdateRequest(req map[string]any) (*config.AdminConfig, *confi
 			case "feature_match", "off":
 				cfg.Mode = mode
 			default:
-				return nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("toolcall.mode must be feature_match or off")
+				return nil, nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("toolcall.mode must be feature_match or off")
 			}
 		}
 		if v, exists := raw["early_emit_confidence"]; exists {
@@ -76,7 +91,7 @@ func parseSettingsUpdateRequest(req map[string]any) (*config.AdminConfig, *confi
 			case "high", "low", "off":
 				cfg.EarlyEmitConfidence = level
 			default:
-				return nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("toolcall.early_emit_confidence must be high, low or off")
+				return nil, nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("toolcall.early_emit_confidence must be high, low or off")
 			}
 		}
 		toolcallCfg = cfg
@@ -87,7 +102,7 @@ func parseSettingsUpdateRequest(req map[string]any) (*config.AdminConfig, *confi
 		if v, exists := raw["store_ttl_seconds"]; exists {
 			n := intFrom(v)
 			if n < 30 || n > 86400 {
-				return nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("responses.store_ttl_seconds must be between 30 and 86400")
+				return nil, nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("responses.store_ttl_seconds must be between 30 and 86400")
 			}
 			cfg.StoreTTLSeconds = n
 		}
@@ -98,9 +113,6 @@ func parseSettingsUpdateRequest(req map[string]any) (*config.AdminConfig, *confi
 		cfg := &config.EmbeddingsConfig{}
 		if v, exists := raw["provider"]; exists {
 			p := strings.TrimSpace(fmt.Sprintf("%v", v))
-			if p == "" {
-				return nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("embeddings.provider cannot be empty")
-			}
 			cfg.Provider = p
 		}
 		embCfg = cfg
@@ -130,5 +142,13 @@ func parseSettingsUpdateRequest(req map[string]any) (*config.AdminConfig, *confi
 		}
 	}
 
-	return adminCfg, runtimeCfg, toolcallCfg, respCfg, embCfg, claudeMap, aliasMap, nil
+	if raw, ok := req["auto_delete"].(map[string]any); ok {
+		cfg := &config.AutoDeleteConfig{}
+		if v, exists := raw["sessions"]; exists {
+			cfg.Sessions = boolFrom(v)
+		}
+		autoDeleteCfg = cfg
+	}
+
+	return adminCfg, runtimeCfg, toolcallCfg, respCfg, embCfg, autoDeleteCfg, claudeMap, aliasMap, nil
 }

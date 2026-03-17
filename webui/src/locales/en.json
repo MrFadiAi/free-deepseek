@@ -131,7 +131,11 @@
         "addAccountAction": "Add account",
         "pageInfo": "Page {current}/{total}, {count} accounts total",
         "searchPlaceholder": "Search accounts...",
-        "searchNoResults": "No accounts match your search"
+        "searchNoResults": "No accounts match your search",
+        "sessionCount": "Sessions: {count}",
+        "deleteAllSessions": "Delete all sessions",
+        "deleteAllSessionsConfirm": "Are you sure you want to delete all sessions for this account? This action cannot be undone.",
+        "deleteAllSessionsSuccess": "Successfully deleted all sessions"
     },
     "apiTester": {
         "defaultMessage": "Hello, please introduce yourself in one sentence.",
@@ -227,6 +231,10 @@
         "modelTitle": "Model mapping",
         "claudeMapping": "Claude mapping (JSON)",
         "modelAliases": "Model aliases (JSON)",
+        "autoDeleteTitle": "Auto Delete Sessions",
+        "autoDeleteDesc": "When enabled, all sessions will be automatically deleted after each request completes.",
+        "autoDeleteSessions": "Auto delete sessions",
+        "autoDeleteWarning": "Warning: Enabling this will delete all session history after each request. Use with caution.",
         "backupTitle": "Backup & Restore",
         "loadExport": "Load current export",
         "importModeMerge": "Merge import (default)",

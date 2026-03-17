@@ -28,6 +28,7 @@ func (h *Handler) getSettings(w http.ResponseWriter, _ *http.Request) {
 		"toolcall":          snap.Toolcall,
 		"responses":         snap.Responses,
 		"embeddings":        snap.Embeddings,
+		"auto_delete":       snap.AutoDelete,
 		"claude_mapping":    settingsClaudeMapping(snap),
 		"model_aliases":     snap.ModelAliases,
 		"env_backed":        h.Store.IsEnvBacked(),

@@ -27,6 +27,7 @@ type ConfigStore interface {
 	RuntimeAccountMaxInflight() int
 	RuntimeAccountMaxQueue(defaultSize int) int
 	RuntimeGlobalMaxInflight(defaultSize int) int
+	AutoDeleteSessions() bool
 }
 
 type PoolController interface {
@@ -40,6 +41,8 @@ type DeepSeekCaller interface {
 	CreateSession(ctx context.Context, a *auth.RequestAuth, maxAttempts int) (string, error)
 	GetPow(ctx context.Context, a *auth.RequestAuth, maxAttempts int) (string, error)
 	CallCompletion(ctx context.Context, a *auth.RequestAuth, payload map[string]any, powResp string, maxAttempts int) (*http.Response, error)
+	GetSessionCountForToken(ctx context.Context, token string) (*deepseek.SessionStats, error)
+	DeleteAllSessionsForToken(ctx context.Context, token string) error
 }
 
 var _ ConfigStore = (*config.Store)(nil)

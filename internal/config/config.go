@@ -12,7 +12,8 @@ type Config struct {
 	Toolcall         ToolcallConfig    `json:"toolcall,omitempty"`
 	Responses        ResponsesConfig   `json:"responses,omitempty"`
 	Embeddings       EmbeddingsConfig  `json:"embeddings,omitempty"`
-	VercelSyncHash   string            `json:"_vercel_sync_hash,omitempty"`
+		AutoDelete       AutoDeleteConfig  `json:"auto_delete"`
+		VercelSyncHash   string            `json:"_vercel_sync_hash,omitempty"`
 	VercelSyncTime   int64             `json:"_vercel_sync_time,omitempty"`
 	AdditionalFields map[string]any    `json:"-"`
 }
@@ -52,4 +53,8 @@ type ResponsesConfig struct {
 
 type EmbeddingsConfig struct {
 	Provider string `json:"provider,omitempty"`
+}
+
+type AutoDeleteConfig struct {
+	Sessions bool `json:"sessions"`
 }

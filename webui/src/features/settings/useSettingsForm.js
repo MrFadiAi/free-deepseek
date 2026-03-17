@@ -16,6 +16,7 @@ const DEFAULT_FORM = {
     toolcall: { mode: 'feature_match', early_emit_confidence: 'high' },
     responses: { store_ttl_seconds: 900 },
     embeddings: { provider: '' },
+    auto_delete: { sessions: false },
     claude_mapping_text: '{\n  "fast": "deepseek-chat",\n  "slow": "deepseek-reasoner"\n}',
     model_aliases_text: '{}',
 }
@@ -55,6 +56,9 @@ function fromServerForm(data) {
         embeddings: {
             provider: data.embeddings?.provider || '',
         },
+        auto_delete: {
+            sessions: Boolean(data.auto_delete?.sessions || false),
+        },
         claude_mapping_text: JSON.stringify(data.claude_mapping || {}, null, 2),
         model_aliases_text: JSON.stringify(data.model_aliases || {}, null, 2),
     }
@@ -74,6 +78,7 @@ function toServerPayload(form) {
         },
         responses: { store_ttl_seconds: Number(form.responses.store_ttl_seconds) },
         embeddings: { provider: String(form.embeddings.provider || '').trim() },
+        auto_delete: { sessions: Boolean(form.auto_delete?.sessions) },
     }
 }
 

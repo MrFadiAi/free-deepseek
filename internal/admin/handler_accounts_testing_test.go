@@ -9,6 +9,7 @@ import (
 
 	"ds2api/internal/auth"
 	"ds2api/internal/config"
+	"ds2api/internal/deepseek"
 )
 
 type testingDSMock struct {
@@ -36,6 +37,14 @@ func (m *testingDSMock) GetPow(_ context.Context, _ *auth.RequestAuth, _ int) (s
 func (m *testingDSMock) CallCompletion(_ context.Context, _ *auth.RequestAuth, _ map[string]any, _ string, _ int) (*http.Response, error) {
 	m.callCompletionCalls++
 	return nil, errors.New("should not call CallCompletion in this test")
+}
+
+func (m *testingDSMock) DeleteAllSessionsForToken(_ context.Context, _ string) error {
+	return nil
+}
+
+func (m *testingDSMock) GetSessionCountForToken(_ context.Context, _ string) (*deepseek.SessionStats, error) {
+	return &deepseek.SessionStats{Success: true}, nil
 }
 
 func TestTestAccount_BatchModeOnlyCreatesSession(t *testing.T) {

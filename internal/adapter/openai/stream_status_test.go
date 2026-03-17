@@ -53,6 +53,10 @@ func (m streamStatusDSStub) CallCompletion(_ context.Context, _ *auth.RequestAut
 	return m.resp, nil
 }
 
+func (m streamStatusDSStub) DeleteAllSessionsForToken(_ context.Context, _ string) error {
+	return nil
+}
+
 func makeOpenAISSEHTTPResponse(lines ...string) *http.Response {
 	body := strings.Join(lines, "\n")
 	if !strings.HasSuffix(body, "\n") {

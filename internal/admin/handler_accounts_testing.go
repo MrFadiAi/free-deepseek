@@ -89,7 +89,7 @@ func runAccountTestsConcurrently(accounts []config.Account, maxConcurrency int, 
 func (h *Handler) testAccount(ctx context.Context, acc config.Account, model, message string) map[string]any {
 	start := time.Now()
 	identifier := acc.Identifier()
-	result := map[string]any{"account": identifier, "success": false, "response_time": 0, "message": "", "model": model}
+	result := map[string]any{"account": identifier, "success": false, "response_time": 0, "message": "", "model": model, "session_count": 0}
 	defer func() {
 		status := "failed"
 		if ok, _ := result["success"].(bool); ok {
@@ -124,6 +124,13 @@ func (h *Handler) testAccount(ctx context.Context, acc config.Account, model, me
 			return result
 		}
 	}
+
+	// 获取会话数量
+	sessionStats, sessionErr := h.DS.GetSessionCountForToken(ctx, token)
+	if sessionErr == nil && sessionStats != nil {
+		result["session_count"] = sessionStats.FirstPageCount
+	}
+
 	if strings.TrimSpace(message) == "" {
 		result["success"] = true
 		result["message"] = "API 测试成功（仅会话创建）"
@@ -209,4 +216,40 @@ func (h *Handler) testAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"success": false, "status_code": resp.StatusCode, "response": string(body)})
+}
+
+func (h *Handler) deleteAllSessions(w http.ResponseWriter, r *http.Request) {
+	var req map[string]any
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	identifier, _ := req["identifier"].(string)
+	if strings.TrimSpace(identifier) == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"detail": "需要账号标识（identifier / email / mobile）"})
+		return
+	}
+	acc, ok := findAccountByIdentifier(h.Store, identifier)
+	if !ok {
+		writeJSON(w, http.StatusNotFound, map[string]any{"detail": "账号不存在"})
+		return
+	}
+
+	// 获取 token
+	token := strings.TrimSpace(acc.Token)
+	if token == "" {
+		newToken, err := h.DS.Login(r.Context(), acc)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"success": false, "message": "登录失败: " + err.Error()})
+			return
+		}
+		token = newToken
+		_ = h.Store.UpdateAccountToken(acc.Identifier(), token)
+	}
+
+	// 删除所有会话
+	err := h.DS.DeleteAllSessionsForToken(r.Context(), token)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]any{"success": false, "message": "删除失败: " + err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"success": true, "message": "删除成功"})
 }

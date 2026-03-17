@@ -165,3 +165,9 @@ func (s *Store) RuntimeGlobalMaxInflight(defaultSize int) int {
 	}
 	return defaultSize
 }
+
+func (s *Store) AutoDeleteSessions() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.cfg.AutoDelete.Sessions
+}

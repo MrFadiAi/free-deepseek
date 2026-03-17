@@ -17,7 +17,7 @@ func (h *Handler) updateSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	adminCfg, runtimeCfg, toolcallCfg, responsesCfg, embeddingsCfg, claudeMap, aliasMap, err := parseSettingsUpdateRequest(req)
+	adminCfg, runtimeCfg, toolcallCfg, responsesCfg, embeddingsCfg, autoDeleteCfg, claudeMap, aliasMap, err := parseSettingsUpdateRequest(req)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"detail": err.Error()})
 		return
@@ -59,6 +59,9 @@ func (h *Handler) updateSettings(w http.ResponseWriter, r *http.Request) {
 		}
 		if embeddingsCfg != nil && strings.TrimSpace(embeddingsCfg.Provider) != "" {
 			c.Embeddings.Provider = strings.TrimSpace(embeddingsCfg.Provider)
+		}
+		if autoDeleteCfg != nil {
+			c.AutoDelete.Sessions = autoDeleteCfg.Sessions
 		}
 		if claudeMap != nil {
 			c.ClaudeMapping = claudeMap

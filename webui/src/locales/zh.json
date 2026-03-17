@@ -131,7 +131,11 @@
         "addAccountAction": "添加账号",
         "pageInfo": "第 {current}/{total} 页，共 {count} 个账号",
         "searchPlaceholder": "搜索账号...",
-        "searchNoResults": "未找到匹配的账号"
+        "searchNoResults": "未找到匹配的账号",
+        "sessionCount": "会话: {count}",
+        "deleteAllSessions": "删除所有会话",
+        "deleteAllSessionsConfirm": "确定要删除该账号的所有会话吗？此操作不可恢复。",
+        "deleteAllSessionsSuccess": "删除成功"
     },
     "apiTester": {
         "defaultMessage": "你好，请用一句话介绍你自己。",
@@ -227,6 +231,10 @@
         "modelTitle": "模型映射",
         "claudeMapping": "Claude 映射（JSON）",
         "modelAliases": "模型别名（JSON）",
+        "autoDeleteTitle": "自动删除会话",
+        "autoDeleteDesc": "开启后，每次请求完成后会自动删除该账号的所有会话记录。",
+        "autoDeleteSessions": "自动删除会话",
+        "autoDeleteWarning": "开启此功能后，每次请求完成都会删除该账号的所有历史会话，请谨慎使用。",
         "backupTitle": "备份与恢复",
         "loadExport": "加载当前导出",
         "importModeMerge": "合并导入（默认）",

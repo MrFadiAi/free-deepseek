@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Check, Copy, Play, Plus, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, Copy, Play, Plus, Trash2, FolderX } from 'lucide-react'
 import clsx from 'clsx'
 
 export default function AccountsTable({
@@ -9,6 +9,8 @@ export default function AccountsTable({
     testing,
     testingAll,
     batchProgress,
+    sessionCounts,
+    deletingSessions,
     totalAccounts,
     page,
     pageSize,
@@ -18,6 +20,7 @@ export default function AccountsTable({
     onShowAddAccount,
     onTestAccount,
     onDeleteAccount,
+    onDeleteAllSessions,
     onPrevPage,
     onNextPage,
     onPageSizeChange,
@@ -124,6 +127,25 @@ export default function AccountsTable({
                                                 <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-[10px]">
                                                     {acc.token_preview}
                                                 </span>
+                                            )}
+                                            {sessionCounts && sessionCounts[id] !== undefined && (
+                                                <span className="font-mono bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded text-[10px]">
+                                                    {t('accountManager.sessionCount', { count: sessionCounts[id] })}
+                                                </span>
+                                            )}
+                                            {sessionCounts && sessionCounts[id] !== undefined && sessionCounts[id] > 0 && (
+                                                <button
+                                                    onClick={() => onDeleteAllSessions(id)}
+                                                    disabled={deletingSessions && deletingSessions[id]}
+                                                    className="flex items-center gap-1 font-mono bg-red-500/10 text-red-500 hover:bg-red-500/20 px-1.5 py-0.5 rounded text-[10px] transition-colors disabled:opacity-50"
+                                                    title={t('accountManager.deleteAllSessions')}
+                                                >
+                                                    {deletingSessions && deletingSessions[id] ? (
+                                                        <span className="animate-spin">⟳</span>
+                                                    ) : (
+                                                        <FolderX className="w-3 h-3" />
+                                                    )}
+                                                </button>
                                             )}
                                         </div>
                                     </div>
