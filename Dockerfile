@@ -25,7 +25,9 @@ FROM busybox:1.36.1-musl AS busybox-tools
 
 FROM debian:bookworm-slim AS runtime-base
 WORKDIR /app
-COPY --from=go-builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=busybox-tools /bin/busybox /usr/local/bin/busybox
 EXPOSE 5001
 CMD ["/usr/local/bin/ds2api"]
