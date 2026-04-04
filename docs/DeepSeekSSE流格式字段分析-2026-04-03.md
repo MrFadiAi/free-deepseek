@@ -83,7 +83,7 @@ data: <json or text>
 POST /admin/dev/raw-samples/capture
 ```
 
-它会把原始上游流和项目最终输出一起落到 `tests/raw_stream_samples/<sample-id>/`，并生成 `openai.output.txt` 作为最终输出的对照基线，便于后续继续分析字段和做回放比对。
+它只会把请求元信息和原始上游流落到 `tests/raw_stream_samples/<sample-id>/`。项目最终输出不会再写入样本目录，而是留给本地回放工具按需生成，写到 `artifacts/raw-stream-sim/<run-id>/<sample-id>/` 里做对照和查阅。
 
 ## 6. `CONTENT_FILTER` 终态样本
 

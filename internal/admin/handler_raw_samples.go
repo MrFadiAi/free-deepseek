@@ -65,18 +65,13 @@ func (h *Handler) captureRawSample(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	processedContentType := strings.TrimSpace(rec.Header().Get("Content-Type"))
 	saved, err := rawsample.Persist(rawsample.PersistOptions{
-		RootDir:              config.RawStreamSampleRoot(),
-		SampleID:             sampleID,
-		Source:               "admin/dev/raw-samples/capture",
-		Request:              payload,
-		Capture:              captureSummaryFromEntry(captureEntry),
-		UpstreamBody:         []byte(captureEntry.ResponseBody),
-		ProcessedBody:        rec.Body.Bytes(),
-		ProcessedKind:        processedKindFromContentType(processedContentType),
-		ProcessedStatusCode:  rec.Code,
-		ProcessedContentType: processedContentType,
+		RootDir:      config.RawStreamSampleRoot(),
+		SampleID:     sampleID,
+		Source:       "admin/dev/raw-samples/capture",
+		Request:      payload,
+		Capture:      captureSummaryFromEntry(captureEntry),
+		UpstreamBody: []byte(captureEntry.ResponseBody),
 	})
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"detail": err.Error()})
@@ -88,8 +83,6 @@ func (h *Handler) captureRawSample(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Ds2-Sample-Dir", saved.Dir)
 	w.Header().Set("X-Ds2-Sample-Meta", saved.MetaPath)
 	w.Header().Set("X-Ds2-Sample-Upstream", saved.UpstreamPath)
-	w.Header().Set("X-Ds2-Sample-Processed", saved.ProcessedPath)
-	w.Header().Set("X-Ds2-Sample-Output", saved.OutputPath)
 	w.WriteHeader(rec.Code)
 	_, _ = io.Copy(w, bytes.NewReader(rec.Body.Bytes()))
 }
@@ -180,18 +173,6 @@ func captureSummaryFromEntry(entry devcapture.Entry) rawsample.CaptureSummary {
 		URL:           strings.TrimSpace(entry.URL),
 		StatusCode:    entry.StatusCode,
 		ResponseBytes: len(entry.ResponseBody),
-	}
-}
-
-func processedKindFromContentType(contentType string) string {
-	ct := strings.ToLower(strings.TrimSpace(contentType))
-	switch {
-	case strings.Contains(ct, "text/event-stream"):
-		return "stream"
-	case strings.Contains(ct, "application/json"):
-		return "json"
-	default:
-		return "stream"
 	}
 }
 

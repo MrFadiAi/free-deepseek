@@ -56,8 +56,8 @@ func TestCaptureRawSampleWritesPersistentSample(t *testing.T) {
 	if got := rec.Header().Get("X-Ds2-Sample-Id"); got != "my-sample-01" {
 		t.Fatalf("expected sample id header my-sample-01, got %q", got)
 	}
-	if got := rec.Header().Get("X-Ds2-Sample-Output"); got != filepath.Join(os.Getenv("DS2API_RAW_STREAM_SAMPLE_ROOT"), "my-sample-01", "openai.output.txt") {
-		t.Fatalf("unexpected sample output header: %q", got)
+	if got := rec.Header().Get("X-Ds2-Sample-Upstream"); got != filepath.Join(os.Getenv("DS2API_RAW_STREAM_SAMPLE_ROOT"), "my-sample-01", "upstream.stream.sse") {
+		t.Fatalf("unexpected sample upstream header: %q", got)
 	}
 	if !strings.Contains(rec.Body.String(), `"content":"hello"`) {
 		t.Fatalf("expected proxied openai output, got %s", rec.Body.String())
@@ -85,11 +85,7 @@ func TestCaptureRawSampleWritesPersistentSample(t *testing.T) {
 	if got := int(capture["response_bytes"].(float64)); got == 0 {
 		t.Fatalf("expected capture bytes to be recorded, got %#v", capture)
 	}
-	processed, _ := meta["processed"].(map[string]any)
-	if processed == nil {
-		t.Fatalf("missing processed meta: %#v", meta)
-	}
-	if processed["file"] != "openai.stream.sse" {
-		t.Fatalf("unexpected processed file: %#v", processed["file"])
+	if _, ok := meta["processed"]; ok {
+		t.Fatalf("unexpected processed meta: %#v", meta["processed"])
 	}
 }

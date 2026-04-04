@@ -35,9 +35,6 @@ func TestPersistWritesSampleFilesAndMeta(t *testing.T) {
 		},
 		UpstreamBody: []byte("data: {\"v\":\"hello [reference:1]\"}\n\n" +
 			"data: {\"v\":\"FINISHED\",\"p\":\"response/status\"}\n\n"),
-		ProcessedBody:        []byte("data: {\"choices\":[{\"delta\":{\"content\":\"hello\"},\"index\":0}],\"created\":1,\"id\":\"id\",\"model\":\"m\",\"object\":\"chat.completion.chunk\"}\n\n"),
-		ProcessedStatusCode:  200,
-		ProcessedContentType: "text/event-stream",
 	})
 	if err != nil {
 		t.Fatalf("Persist failed: %v", err)
@@ -52,14 +49,11 @@ func TestPersistWritesSampleFilesAndMeta(t *testing.T) {
 	if _, err := os.Stat(saved.UpstreamPath); err != nil {
 		t.Fatalf("upstream file missing: %v", err)
 	}
-	if _, err := os.Stat(saved.ProcessedPath); err != nil {
-		t.Fatalf("processed file missing: %v", err)
+	if _, err := os.Stat(filepath.Join(saved.Dir, "openai.stream.sse")); !os.IsNotExist(err) {
+		t.Fatalf("unexpected processed stream file: %v", err)
 	}
-	if saved.OutputPath != filepath.Join(saved.Dir, "openai.output.txt") {
-		t.Fatalf("unexpected processed text path: %s", saved.OutputPath)
-	}
-	if _, err := os.Stat(saved.OutputPath); err != nil {
-		t.Fatalf("processed text file missing: %v", err)
+	if _, err := os.Stat(filepath.Join(saved.Dir, "openai.output.txt")); !os.IsNotExist(err) {
+		t.Fatalf("unexpected processed text file: %v", err)
 	}
 
 	metaBytes, err := os.ReadFile(saved.MetaPath)
@@ -79,16 +73,7 @@ func TestPersistWritesSampleFilesAndMeta(t *testing.T) {
 	if meta.Capture.FinishedTokenCount != 1 {
 		t.Fatalf("expected one finished token, got %+v", meta.Capture)
 	}
-	if meta.Processed.File != "openai.stream.sse" {
-		t.Fatalf("expected stream processed file, got %+v", meta.Processed)
-	}
-	if meta.Processed.TextFile != "openai.output.txt" {
-		t.Fatalf("expected text file metadata, got %+v", meta.Processed)
-	}
-	if meta.Processed.ResponseBytes == 0 {
-		t.Fatalf("expected processed bytes to be recorded, got %+v", meta.Processed)
-	}
-	if !strings.HasSuffix(saved.ProcessedPath, filepath.Join(saved.SampleID, "openai.stream.sse")) {
-		t.Fatalf("unexpected processed path: %s", saved.ProcessedPath)
+	if strings.Contains(string(metaBytes), "\"processed\"") {
+		t.Fatalf("meta should not include processed payload: %s", string(metaBytes))
 	}
 }

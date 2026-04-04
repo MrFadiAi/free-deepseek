@@ -12,12 +12,15 @@ function parseArgs(argv) {
   const out = {
     samplesRoot: 'tests/raw_stream_samples',
     reportPath: '',
+    outputRoot: '',
+    baselineRoot: '',
+    sampleId: '',
     failOnLeak: true,
     failOnReferenceLeak: true,
     failOnMissingFinish: true,
-    failOnProcessedMismatch: true,
+    failOnBaselineMismatch: true,
     showOutput: false,
-    writeProcessedText: false,
+    writeReplayText: false,
   };
   for (let i = 2; i < argv.length; i += 1) {
     const a = argv[i];
@@ -25,18 +28,24 @@ function parseArgs(argv) {
       out.samplesRoot = argv[++i];
     } else if (a === '--report' && argv[i + 1]) {
       out.reportPath = argv[++i];
+    } else if (a === '--output-root' && argv[i + 1]) {
+      out.outputRoot = argv[++i];
+    } else if (a === '--baseline-root' && argv[i + 1]) {
+      out.baselineRoot = argv[++i];
+    } else if (a === '--sample-id' && argv[i + 1]) {
+      out.sampleId = argv[++i];
     } else if (a === '--no-fail-on-leak') {
       out.failOnLeak = false;
     } else if (a === '--no-fail-on-reference-leak') {
       out.failOnReferenceLeak = false;
     } else if (a === '--no-fail-on-missing-finish') {
       out.failOnMissingFinish = false;
-    } else if (a === '--no-fail-on-processed-mismatch') {
-      out.failOnProcessedMismatch = false;
+    } else if (a === '--no-fail-on-baseline-mismatch' || a === '--no-fail-on-processed-mismatch') {
+      out.failOnBaselineMismatch = false;
     } else if (a === '--show-output') {
       out.showOutput = true;
-    } else if (a === '--write-processed-text') {
-      out.writeProcessedText = true;
+    } else if (a === '--write-replay-text' || a === '--write-processed-text') {
+      out.writeReplayText = true;
     }
   }
   return out;
@@ -61,9 +70,18 @@ function loadManifest(root) {
   }
 }
 
-function resolveSampleDirs(root) {
+function resolveSampleDirs(root, sampleID) {
   if (!fs.existsSync(root)) {
     return { dirs: [], manifestPath: '' };
+  }
+
+  if (sampleID) {
+    const dir = path.join(root, sampleID);
+    const ssePath = path.join(dir, 'upstream.stream.sse');
+    if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory() || !fs.existsSync(ssePath)) {
+      throw new Error(`[sim] sample missing: ${sampleID}`);
+    }
+    return { dirs: [dir], manifestPath: '' };
   }
 
   const manifest = loadManifest(root);
@@ -294,30 +312,47 @@ function parseOpenAIJSON(raw) {
   };
 }
 
-function loadProcessedSample(dir) {
-  const textPath = path.join(dir, 'openai.output.txt');
-  if (fs.existsSync(textPath)) {
-    return {
-      path: textPath,
-      kind: 'text',
-      raw: fs.readFileSync(textPath, 'utf8'),
-    };
+function loadBaselineSample(dir, baselineRoot) {
+  const sampleID = path.basename(dir);
+  const roots = [];
+  if (baselineRoot) {
+    roots.push(path.join(baselineRoot, sampleID));
   }
-  const streamPath = path.join(dir, 'openai.stream.sse');
-  if (fs.existsSync(streamPath)) {
-    return {
-      path: streamPath,
-      kind: 'stream',
-      raw: fs.readFileSync(streamPath, 'utf8'),
-    };
-  }
-  const jsonPath = path.join(dir, 'openai.response.json');
-  if (fs.existsSync(jsonPath)) {
-    return {
-      path: jsonPath,
-      kind: 'json',
-      raw: fs.readFileSync(jsonPath, 'utf8'),
-    };
+  roots.push(dir);
+
+  for (const root of roots) {
+    const textPath = path.join(root, 'replay.output.txt');
+    if (fs.existsSync(textPath)) {
+      return {
+        path: textPath,
+        kind: 'text',
+        raw: fs.readFileSync(textPath, 'utf8'),
+      };
+    }
+    const legacyTextPath = path.join(root, 'openai.output.txt');
+    if (fs.existsSync(legacyTextPath)) {
+      return {
+        path: legacyTextPath,
+        kind: 'text',
+        raw: fs.readFileSync(legacyTextPath, 'utf8'),
+      };
+    }
+    const streamPath = path.join(root, 'openai.stream.sse');
+    if (fs.existsSync(streamPath)) {
+      return {
+        path: streamPath,
+        kind: 'stream',
+        raw: fs.readFileSync(streamPath, 'utf8'),
+      };
+    }
+    const jsonPath = path.join(root, 'openai.response.json');
+    if (fs.existsSync(jsonPath)) {
+      return {
+        path: jsonPath,
+        kind: 'json',
+        raw: fs.readFileSync(jsonPath, 'utf8'),
+      };
+    }
   }
   return null;
 }
@@ -325,25 +360,31 @@ function loadProcessedSample(dir) {
 function replaySample(dir, opts) {
   const raw = fs.readFileSync(path.join(dir, 'upstream.stream.sse'), 'utf8');
   const rawResult = parseDeepSeekReplay(raw);
-  if (opts.writeProcessedText) {
-    fs.writeFileSync(path.join(dir, 'openai.output.txt'), rawResult.outputText);
+
+  let replayOutputPath = '';
+  if (opts.outputRoot) {
+    const sampleOutputDir = path.join(opts.outputRoot, path.basename(dir));
+    fs.mkdirSync(sampleOutputDir, { recursive: true });
+    replayOutputPath = path.join(sampleOutputDir, 'replay.output.txt');
+    fs.writeFileSync(replayOutputPath, rawResult.outputText);
   }
-  const processed = loadProcessedSample(dir);
-  const processedResult = processed
-    ? (processed.kind === 'text'
+
+  const baseline = loadBaselineSample(dir, opts.baselineRoot);
+  const baselineResult = baseline
+    ? (baseline.kind === 'text'
       ? {
           events: 0,
           parsedChunks: 0,
           sawFinish: false,
-          outputText: processed.raw,
-          outputChars: processed.raw.length,
+          outputText: baseline.raw,
+          outputChars: baseline.raw.length,
         }
-      : processed.kind === 'stream'
-        ? parseOpenAIStream(processed.raw)
-        : parseOpenAIJSON(processed.raw))
+      : baseline.kind === 'stream'
+        ? parseOpenAIStream(baseline.raw)
+        : parseOpenAIJSON(baseline.raw))
     : null;
-  const processedMatch = processedResult ? processedResult.outputText === rawResult.outputText : null;
-  const processedPreview = processedResult ? previewText(processedResult.outputText, 280) : '';
+  const baselineMatch = baselineResult ? baselineResult.outputText === rawResult.outputText : null;
+  const baselinePreview = baselineResult ? previewText(baselineResult.outputText, 280) : '';
   const errors = [];
 
   if (opts.failOnMissingFinish && !rawResult.sawFinish) {
@@ -355,8 +396,8 @@ function replaySample(dir, opts) {
   if (opts.failOnReferenceLeak && rawResult.leakedReferenceMarkers) {
     errors.push('reference markers leaked into output text');
   }
-  if (processedResult && opts.failOnProcessedMismatch && !processedMatch) {
-    errors.push('processed output mismatch');
+  if (baselineResult && opts.failOnBaselineMismatch && !baselineMatch) {
+    errors.push('baseline output mismatch');
   }
 
   return {
@@ -368,18 +409,19 @@ function replaySample(dir, opts) {
     raw_leaked_finished_text: rawResult.leakedFinishedText,
     raw_leaked_reference_markers: rawResult.leakedReferenceMarkers,
     raw_reference_leak_count: rawResult.referenceLeakCount,
-    processed_available: Boolean(processedResult),
-    processed_path: processed ? processed.path : '',
-    processed_kind: processed ? processed.kind : '',
-    processed_parsed_chunks: processedResult ? processedResult.parsedChunks : 0,
-    processed_saw_finish: processedResult ? processedResult.sawFinish : false,
-    processed_output_chars: processedResult ? processedResult.outputChars : 0,
-    processed_output_matches_replay: processedResult ? processedMatch : null,
-    processed_output_preview: processedPreview,
+    baseline_available: Boolean(baselineResult),
+    baseline_path: baseline ? baseline.path : '',
+    baseline_kind: baseline ? baseline.kind : '',
+    baseline_parsed_chunks: baselineResult ? baselineResult.parsedChunks : 0,
+    baseline_saw_finish: baselineResult ? baselineResult.sawFinish : false,
+    baseline_output_chars: baselineResult ? baselineResult.outputChars : 0,
+    baseline_output_matches_replay: baselineResult ? baselineMatch : null,
+    baseline_output_preview: baselinePreview,
     ok: errors.length === 0,
     errors,
     replay_output_text: rawResult.outputText,
-    processed_output_text: processedResult ? processedResult.outputText : '',
+    replay_output_path: replayOutputPath,
+    baseline_output_text: baselineResult ? baselineResult.outputText : '',
   };
 }
 
@@ -395,7 +437,11 @@ function previewText(text, limit) {
 
 function main() {
   const opts = parseArgs(process.argv);
-  const { dirs, manifestPath } = resolveSampleDirs(opts.samplesRoot);
+  if (!opts.outputRoot && opts.writeReplayText) {
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    opts.outputRoot = path.join('artifacts/raw-stream-sim', `adhoc-${stamp}`);
+  }
+  const { dirs, manifestPath } = resolveSampleDirs(opts.samplesRoot, opts.sampleId);
   if (dirs.length === 0) {
     console.error(`[sim] no samples found: ${opts.samplesRoot}`);
     process.exit(1);
@@ -405,6 +451,9 @@ function main() {
     generated_at: new Date().toISOString(),
     samples_root: opts.samplesRoot,
     manifest_path: manifestPath,
+    output_root: opts.outputRoot,
+    baseline_root: opts.baselineRoot,
+    sample_id: opts.sampleId,
     total: dirs.length,
     failed: 0,
     samples: [],
@@ -429,28 +478,29 @@ function main() {
       raw_leaked_finished_text: sample.raw_leaked_finished_text,
       raw_leaked_reference_markers: sample.raw_leaked_reference_markers,
       raw_reference_leak_count: sample.raw_reference_leak_count,
-      processed_available: sample.processed_available,
-      processed_path: sample.processed_path,
-      processed_kind: sample.processed_kind,
-      processed_parsed_chunks: sample.processed_parsed_chunks,
-      processed_saw_finish: sample.processed_saw_finish,
-      processed_output_chars: sample.processed_output_chars,
-      processed_output_matches_replay: sample.processed_output_matches_replay,
-      processed_output_preview: sample.processed_output_preview,
+      baseline_available: sample.baseline_available,
+      baseline_path: sample.baseline_path,
+      baseline_kind: sample.baseline_kind,
+      baseline_parsed_chunks: sample.baseline_parsed_chunks,
+      baseline_saw_finish: sample.baseline_saw_finish,
+      baseline_output_chars: sample.baseline_output_chars,
+      baseline_output_matches_replay: sample.baseline_output_matches_replay,
+      baseline_output_preview: sample.baseline_output_preview,
+      replay_output_path: sample.replay_output_path,
       ok: errors.length === 0,
       errors,
     });
 
     const status = sample.ok ? 'OK' : 'FAIL';
     const leakNote = sample.raw_leaked_reference_markers ? ` refLeaks=${sample.raw_reference_leak_count}` : '';
-    const matchNote = sample.processed_available
-      ? ` processed=${sample.processed_output_matches_replay ? 'match' : 'mismatch'}`
-      : ' processed=missing';
+    const matchNote = sample.baseline_available
+      ? ` baseline=${sample.baseline_output_matches_replay ? 'match' : 'mismatch'}`
+      : ' baseline=missing';
     const note = errors.length > 0 ? ` errors=${errors.join(';')}` : '';
     console.log(`[sim] ${status} ${sample.sample_id} events=${sample.raw_events} parsed=${sample.raw_parsed_chunks} chars=${sample.raw_output_chars}${leakNote}${matchNote}${note}`);
-    if (opts.showOutput && sample.processed_available) {
-      console.log(`[sim] processed output for ${sample.sample_id}:`);
-      console.log(sample.processed_output_text || '(empty)');
+    if (opts.showOutput) {
+      console.log(`[sim] replay output for ${sample.sample_id}:`);
+      console.log(sample.replay_output_text || '(empty)');
     }
   }
 

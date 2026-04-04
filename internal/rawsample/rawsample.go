@@ -26,51 +26,29 @@ type CaptureSummary struct {
 	FinishedTokenCount       int    `json:"finished_token_count,omitempty"`
 }
 
-type ProcessedSummary struct {
-	Kind                     string `json:"kind"`
-	File                     string `json:"file"`
-	TextFile                 string `json:"text_file,omitempty"`
-	StatusCode               int    `json:"status_code"`
-	ContentType              string `json:"content_type,omitempty"`
-	ResponseBytes            int    `json:"response_bytes"`
-	ContainsReferenceMarkers bool   `json:"contains_reference_markers,omitempty"`
-	ReferenceMarkerCount     int    `json:"reference_marker_count,omitempty"`
-	ContainsFinishedToken    bool   `json:"contains_finished_token,omitempty"`
-	FinishedTokenCount       int    `json:"finished_token_count,omitempty"`
-}
-
 type Meta struct {
-	SampleID      string           `json:"sample_id"`
-	CapturedAtUTC string           `json:"captured_at_utc"`
-	Source        string           `json:"source,omitempty"`
-	Request       any              `json:"request"`
-	Capture       CaptureSummary   `json:"capture"`
-	Processed     ProcessedSummary `json:"processed"`
+	SampleID      string         `json:"sample_id"`
+	CapturedAtUTC string         `json:"captured_at_utc"`
+	Source        string         `json:"source,omitempty"`
+	Request       any            `json:"request"`
+	Capture       CaptureSummary `json:"capture"`
 }
 
 type PersistOptions struct {
-	RootDir              string
-	SampleID             string
-	Source               string
-	Request              any
-	Capture              CaptureSummary
-	UpstreamBody         []byte
-	ProcessedBody        []byte
-	ProcessedKind        string
-	ProcessedFile        string
-	ProcessedStatusCode  int
-	ProcessedContentType string
-	ProcessedText        string
+	RootDir      string
+	SampleID     string
+	Source       string
+	Request      any
+	Capture      CaptureSummary
+	UpstreamBody []byte
 }
 
 type SavedSample struct {
-	SampleID      string
-	Dir           string
-	MetaPath      string
-	UpstreamPath  string
-	ProcessedPath string
-	OutputPath    string
-	Meta          Meta
+	SampleID     string
+	Dir          string
+	MetaPath     string
+	UpstreamPath string
+	Meta         Meta
 }
 
 func Persist(opts PersistOptions) (SavedSample, error) {
@@ -80,9 +58,6 @@ func Persist(opts PersistOptions) (SavedSample, error) {
 	}
 	if len(opts.UpstreamBody) == 0 {
 		return SavedSample{}, errors.New("upstream body is required")
-	}
-	if len(opts.ProcessedBody) == 0 {
-		return SavedSample{}, errors.New("processed body is required")
 	}
 
 	if err := os.MkdirAll(root, 0o755); err != nil {
@@ -114,48 +89,10 @@ func Persist(opts PersistOptions) (SavedSample, error) {
 		return SavedSample{}, fmt.Errorf("write upstream stream: %w", err)
 	}
 
-	processedKind := strings.TrimSpace(opts.ProcessedKind)
-	if processedKind == "" {
-		processedKind = inferProcessedKind(opts.ProcessedContentType)
-	}
-	processedFile := strings.TrimSpace(opts.ProcessedFile)
-	if processedFile == "" {
-		processedFile = defaultProcessedFile(processedKind, opts.ProcessedContentType)
-	}
-	if processedFile == "" {
-		cleanup()
-		return SavedSample{}, errors.New("processed file name is required")
-	}
-	processedPath := filepath.Join(tempDir, processedFile)
-	if err := os.WriteFile(processedPath, opts.ProcessedBody, 0o644); err != nil {
-		cleanup()
-		return SavedSample{}, fmt.Errorf("write processed output: %w", err)
-	}
-
-	processedText := opts.ProcessedText
-	if processedText == "" {
-		processedText = extractProcessedVisibleText(opts.ProcessedBody, processedKind, opts.ProcessedContentType)
-	}
-	textPath := filepath.Join(tempDir, "openai.output.txt")
-	if err := os.WriteFile(textPath, []byte(processedText), 0o644); err != nil {
-		cleanup()
-		return SavedSample{}, fmt.Errorf("write processed text: %w", err)
-	}
-
 	now := time.Now().UTC()
 	capture := opts.Capture
 	capture.ResponseBytes = len(opts.UpstreamBody)
 	capture.ContainsReferenceMarkers, capture.ReferenceMarkerCount, capture.ContainsFinishedToken, capture.FinishedTokenCount = analyzeBytes(opts.UpstreamBody)
-
-	processed := ProcessedSummary{
-		Kind:          processedKind,
-		File:          processedFile,
-		TextFile:      "openai.output.txt",
-		StatusCode:    opts.ProcessedStatusCode,
-		ContentType:   strings.TrimSpace(opts.ProcessedContentType),
-		ResponseBytes: len(opts.ProcessedBody),
-	}
-	processed.ContainsReferenceMarkers, processed.ReferenceMarkerCount, processed.ContainsFinishedToken, processed.FinishedTokenCount = analyzeBytes(opts.ProcessedBody)
 
 	meta := Meta{
 		SampleID:      sampleID,
@@ -163,7 +100,6 @@ func Persist(opts PersistOptions) (SavedSample, error) {
 		Source:        strings.TrimSpace(opts.Source),
 		Request:       opts.Request,
 		Capture:       capture,
-		Processed:     processed,
 	}
 	metaBytes, err := json.MarshalIndent(meta, "", "  ")
 	if err != nil {
@@ -182,13 +118,11 @@ func Persist(opts PersistOptions) (SavedSample, error) {
 	}
 
 	return SavedSample{
-		SampleID:      sampleID,
-		Dir:           finalDir,
-		MetaPath:      filepath.Join(finalDir, "meta.json"),
-		UpstreamPath:  filepath.Join(finalDir, "upstream.stream.sse"),
-		ProcessedPath: filepath.Join(finalDir, processedFile),
-		OutputPath:    filepath.Join(finalDir, "openai.output.txt"),
-		Meta:          meta,
+		SampleID:     sampleID,
+		Dir:          finalDir,
+		MetaPath:     filepath.Join(finalDir, "meta.json"),
+		UpstreamPath: filepath.Join(finalDir, "upstream.stream.sse"),
+		Meta:         meta,
 	}, nil
 }
 
@@ -224,33 +158,6 @@ func DefaultSampleID(prefix string) string {
 		prefix = "capture"
 	}
 	return fmt.Sprintf("%s-%s", prefix, time.Now().UTC().Format("20060102T150405Z"))
-}
-
-func inferProcessedKind(contentType string) string {
-	ct := strings.ToLower(strings.TrimSpace(contentType))
-	switch {
-	case strings.Contains(ct, "text/event-stream"):
-		return "stream"
-	case strings.Contains(ct, "application/json"):
-		return "json"
-	default:
-		return "stream"
-	}
-}
-
-func defaultProcessedFile(kind, contentType string) string {
-	switch strings.ToLower(strings.TrimSpace(kind)) {
-	case "json":
-		return "openai.response.json"
-	case "stream":
-		return "openai.stream.sse"
-	}
-	switch inferProcessedKind(contentType) {
-	case "json":
-		return "openai.response.json"
-	default:
-		return "openai.stream.sse"
-	}
 }
 
 func uniqueSampleID(root, base string) (string, error) {
