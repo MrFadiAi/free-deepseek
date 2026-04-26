@@ -264,6 +264,7 @@
         "deleteSuccess": "对话记录已删除",
         "deleteFailed": "删除对话记录失败",
         "updateLimitFailed": "更新保留条数失败",
+        "disabledSuccess": "已关闭对话历史记录",
         "limitUpdated": "保留条数已更新为 {limit}",
         "listTitle": "历史列表",
         "detailTitle": "对话详情",

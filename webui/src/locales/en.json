@@ -264,6 +264,7 @@
         "deleteSuccess": "Conversation deleted.",
         "deleteFailed": "Failed to delete conversation.",
         "updateLimitFailed": "Failed to update retention limit.",
+        "disabledSuccess": "Conversation history saving disabled.",
         "limitUpdated": "Retention limit updated to {limit}",
         "listTitle": "History",
         "detailTitle": "Details",
