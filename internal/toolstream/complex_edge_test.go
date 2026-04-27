@@ -615,3 +615,68 @@ func TestSieve_DSMLSpaceLookalikeTagNameStaysText(t *testing.T) {
 		t.Fatalf("相似标签名应作为正文透传, got %q", text.String())
 	}
 }
+
+func TestSieve_DSMLCollapsedTagNamesWithPrefixText(t *testing.T) {
+	var state State
+	todos := `[x] 检查 toolcalls_format.go 格式化逻辑
+[x] 检查 toolcalls_parse.go 解析逻辑
+[x] 检查 toolcalls_xml.go 和 toolcalls_dsml.go
+[x] 检查 toolcalls_markup.go 和 toolcalls_json_repair.go
+[x] 检查 prompt/tool_calls.go 注入逻辑
+[x] 检查 toolstream 流式解析
+[x] 查看测试文件确认预期行为
+[x] 给出调查结论`
+	chunks := []string{
+		"[]\n",
+		"<DSMLtool_calls>\n",
+		"<DSMLinvoke name=\"update_todo_list\">\n",
+		"<DSMLparameter name=\"todos\"><![CDATA[" + todos + "]]></DSMLparameter>\n",
+		"</DSMLinvoke>\n",
+		"</DSMLtool_calls>",
+	}
+	var events []Event
+	for _, c := range chunks {
+		events = append(events, ProcessChunk(&state, c, []string{"update_todo_list"})...)
+	}
+	events = append(events, Flush(&state, []string{"update_todo_list"})...)
+
+	var text strings.Builder
+	var gotTodos string
+	callCount := 0
+	for _, e := range events {
+		text.WriteString(e.Content)
+		for _, call := range e.ToolCalls {
+			callCount++
+			gotTodos, _ = call.Input["todos"].(string)
+		}
+	}
+	if callCount != 1 {
+		t.Fatalf("应解析出 1 个工具调用，got %d, text=%q", callCount, text.String())
+	}
+	if gotTodos != todos {
+		t.Fatalf("todos 应完整保留，got %q", gotTodos)
+	}
+	if text.String() != "[]\n" {
+		t.Fatalf("前置正文应完整保留且不泄漏工具块, got %q", text.String())
+	}
+}
+
+func TestSieve_DSMLCollapsedLookalikeTagNameStaysText(t *testing.T) {
+	var state State
+	input := "<DSMLtool_calls_extra><DSMLinvoke name=\"update_todo_list\"><DSMLparameter name=\"todos\">x</DSMLparameter></DSMLinvoke></DSMLtool_calls_extra>"
+	events := ProcessChunk(&state, input, []string{"update_todo_list"})
+	events = append(events, Flush(&state, []string{"update_todo_list"})...)
+
+	var text strings.Builder
+	callCount := 0
+	for _, e := range events {
+		text.WriteString(e.Content)
+		callCount += len(e.ToolCalls)
+	}
+	if callCount != 0 {
+		t.Fatalf("相似 collapsed 标签名不应触发工具调用，got %d", callCount)
+	}
+	if text.String() != input {
+		t.Fatalf("相似 collapsed 标签名应作为正文透传, got %q", text.String())
+	}
+}

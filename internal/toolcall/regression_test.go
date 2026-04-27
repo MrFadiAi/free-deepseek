@@ -12,9 +12,9 @@ func TestRegression_RobustXMLAndCDATA(t *testing.T) {
 		expected []ParsedToolCall
 	}{
 		{
-			name:     "Standard JSON parameters (Regression)",
+			name:     "Standard JSON scalar parameters (Regression)",
 			text:     `<tool_calls><invoke name="foo"><parameter name="a">1</parameter></invoke></tool_calls>`,
-			expected: []ParsedToolCall{{Name: "foo", Input: map[string]any{"a": "1"}}},
+			expected: []ParsedToolCall{{Name: "foo", Input: map[string]any{"a": float64(1)}}},
 		},
 		{
 			name:     "XML tags parameters (Regression)",

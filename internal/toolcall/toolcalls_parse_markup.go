@@ -295,15 +295,24 @@ func parseInvokeParameterValue(raw string) any {
 		return ""
 	}
 	if value, ok := extractStandaloneCDATA(trimmed); ok {
+		if parsed, ok := parseJSONLiteralValue(value); ok {
+			return parsed
+		}
 		return value
 	}
-	if parsed := parseStructuredToolCallInput(trimmed); len(parsed) > 0 {
-		if len(parsed) == 1 {
-			if rawValue, ok := parsed["_raw"].(string); ok {
-				return rawValue
+	decoded := html.UnescapeString(extractRawTagValue(trimmed))
+	if strings.Contains(decoded, "<") && strings.Contains(decoded, ">") {
+		if parsed := parseStructuredToolCallInput(decoded); len(parsed) > 0 {
+			if len(parsed) == 1 {
+				if rawValue, ok := parsed["_raw"].(string); ok {
+					return rawValue
+				}
 			}
+			return parsed
 		}
+	}
+	if parsed, ok := parseJSONLiteralValue(decoded); ok {
 		return parsed
 	}
-	return html.UnescapeString(extractRawTagValue(trimmed))
+	return decoded
 }

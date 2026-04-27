@@ -174,6 +174,41 @@ func TestProcessToolSieveKeepsCDATAEmbeddedToolClosingBuffered(t *testing.T) {
 	}
 }
 
+func TestProcessToolSieveFallsBackWhenCDATANeverCloses(t *testing.T) {
+	var state State
+	chunks := []string{
+		"<tool_calls>\n  <invoke name=\"Write\">\n    <parameter name=\"content\"><![CDATA[",
+		"hello world",
+		"</parameter>\n  </invoke>\n</tool_calls>",
+	}
+	var events []Event
+	for _, c := range chunks {
+		events = append(events, ProcessChunk(&state, c, []string{"Write"})...)
+	}
+	events = append(events, Flush(&state, []string{"Write"})...)
+
+	var textContent strings.Builder
+	toolCalls := 0
+	for _, evt := range events {
+		if evt.Content != "" {
+			textContent.WriteString(evt.Content)
+		}
+		toolCalls += len(evt.ToolCalls)
+		if len(evt.ToolCalls) > 0 {
+			if got, _ := evt.ToolCalls[0].Input["content"].(string); got != "hello world" {
+				t.Fatalf("expected recovered CDATA payload, got %q", got)
+			}
+		}
+	}
+
+	if toolCalls != 1 {
+		t.Fatalf("expected unclosed CDATA payload to still parse, got %d tool calls events=%#v", toolCalls, events)
+	}
+	if textContent.Len() != 0 {
+		t.Fatalf("expected no leaked text, got %q", textContent.String())
+	}
+}
+
 func TestProcessToolSieveXMLWithLeadingText(t *testing.T) {
 	var state State
 	// Model outputs some prose then an XML tool call.

@@ -3,6 +3,7 @@
 const TOOL_CALL_MARKUP_KV_PATTERN = /<(?:[a-z0-9_:-]+:)?([a-z0-9_.-]+)\b[^>]*>([\s\S]*?)<\/(?:[a-z0-9_:-]+:)?\1>/gi;
 const CDATA_PATTERN = /^<!\[CDATA\[([\s\S]*?)]]>$/i;
 const XML_ATTR_PATTERN = /\b([a-z0-9_:-]+)\s*=\s*("([^"]*)"|'([^']*)')/gi;
+const TOOL_MARKUP_NAMES = ['tool_calls', 'invoke', 'parameter'];
 
 const {
   toStringSafe,
@@ -138,13 +139,10 @@ function normalizeDSMLToolCallMarkup(text) {
   if (!raw) {
     return { text: '', ok: true };
   }
-  const styles = toolMarkupStylesOutsideIgnored(raw);
+  const styles = containsToolMarkupSyntaxOutsideIgnored(raw);
   if (!styles.dsml) {
     return { text: raw, ok: true };
   }
-  // Always normalize DSML aliases to canonical form, even when canonical
-  // tags coexist. Models frequently mix DSML wrapper tags with canonical
-  // inner tags (e.g., <｜tool_calls><invoke name="...">).
   return {
     text: replaceDSMLToolMarkupOutsideIgnored(raw),
     ok: true,
@@ -152,65 +150,21 @@ function normalizeDSMLToolCallMarkup(text) {
 }
 
 function containsDSMLToolMarkup(text) {
-  return toolMarkupStylesOutsideIgnored(text).dsml;
+  return containsToolMarkupSyntaxOutsideIgnored(text).dsml;
 }
 
 function containsCanonicalToolMarkup(text) {
-  return toolMarkupStylesOutsideIgnored(text).canonical;
+  return containsToolMarkupSyntaxOutsideIgnored(text).canonical;
 }
 
-const DSML_TOOL_MARKUP_ALIASES = [
-  { from: '<|dsml|tool_calls', to: '<tool_calls' },
-  { from: '</|dsml|tool_calls>', to: '</tool_calls>' },
-  { from: '<|dsml|invoke', to: '<invoke' },
-  { from: '</|dsml|invoke>', to: '</invoke>' },
-  { from: '<|dsml|parameter', to: '<parameter' },
-  { from: '</|dsml|parameter>', to: '</parameter>' },
-  { from: '<|dsml tool_calls', to: '<tool_calls' },
-  { from: '</|dsml tool_calls>', to: '</tool_calls>' },
-  { from: '<|dsml invoke', to: '<invoke' },
-  { from: '</|dsml invoke>', to: '</invoke>' },
-  { from: '<|dsml parameter', to: '<parameter' },
-  { from: '</|dsml parameter>', to: '</parameter>' },
-  { from: '<dsml tool_calls', to: '<tool_calls' },
-  { from: '</dsml tool_calls>', to: '</tool_calls>' },
-  { from: '<dsml invoke', to: '<invoke' },
-  { from: '</dsml invoke>', to: '</invoke>' },
-  { from: '<dsml parameter', to: '<parameter' },
-  { from: '</dsml parameter>', to: '</parameter>' },
-  { from: '<dsml|tool_calls', to: '<tool_calls' },
-  { from: '</dsml|tool_calls>', to: '</tool_calls>' },
-  { from: '<dsml|invoke', to: '<invoke' },
-  { from: '</dsml|invoke>', to: '</invoke>' },
-  { from: '<dsml|parameter', to: '<parameter' },
-  { from: '</dsml|parameter>', to: '</parameter>' },
-  { from: '<|tool_calls', to: '<tool_calls' },
-  { from: '</|tool_calls>', to: '</tool_calls>' },
-  { from: '<|invoke', to: '<invoke' },
-  { from: '</|invoke>', to: '</invoke>' },
-  { from: '<|parameter', to: '<parameter' },
-  { from: '</|parameter>', to: '</parameter>' },
-  { from: '<｜tool_calls', to: '<tool_calls' },
-  { from: '</｜tool_calls>', to: '</tool_calls>' },
-  { from: '<｜invoke', to: '<invoke' },
-  { from: '</｜invoke>', to: '</invoke>' },
-  { from: '<｜parameter', to: '<parameter' },
-  { from: '</｜parameter>', to: '</parameter>' },
-];
-
-const CANONICAL_TOOL_MARKUP_PREFIXES = [
-  '<tool_calls',
-  '</tool_calls>',
-  '<invoke',
-  '</invoke>',
-  '<parameter',
-  '</parameter>',
-];
-
-function toolMarkupStylesOutsideIgnored(text) {
-  const lower = toStringSafe(text).toLowerCase();
+function containsToolCallWrapperSyntaxOutsideIgnored(text) {
+  const raw = toStringSafe(text);
   const styles = { dsml: false, canonical: false };
-  for (let i = 0; i < lower.length;) {
+  if (!raw) {
+    return styles;
+  }
+  const lower = raw.toLowerCase();
+  for (let i = 0; i < raw.length;) {
     const skipped = skipXmlIgnoredSection(lower, i);
     if (skipped.blocked) {
       return styles;
@@ -219,14 +173,54 @@ function toolMarkupStylesOutsideIgnored(text) {
       i = skipped.next;
       continue;
     }
-    if (CANONICAL_TOOL_MARKUP_PREFIXES.some(prefix => lower.startsWith(prefix, i))) {
-      styles.canonical = true;
+    const tag = scanToolMarkupTagAt(raw, i);
+    if (tag) {
+      if (tag.name !== 'tool_calls') {
+        i = tag.end + 1;
+        continue;
+      }
+      if (tag.dsmlLike) {
+        styles.dsml = true;
+      } else {
+        styles.canonical = true;
+      }
+      if (styles.dsml && styles.canonical) {
+        return styles;
+      }
+      i = tag.end + 1;
+      continue;
     }
-    if (DSML_TOOL_MARKUP_ALIASES.some(alias => lower.startsWith(alias.from, i))) {
-      styles.dsml = true;
-    }
-    if (styles.dsml && styles.canonical) {
+    i += 1;
+  }
+  return styles;
+}
+function containsToolMarkupSyntaxOutsideIgnored(text) {
+  const raw = toStringSafe(text);
+  const styles = { dsml: false, canonical: false };
+  if (!raw) {
+    return styles;
+  }
+  for (let i = 0; i < raw.length;) {
+    const skipped = skipXmlIgnoredSection(raw.toLowerCase(), i);
+    if (skipped.blocked) {
       return styles;
+    }
+    if (skipped.advanced) {
+      i = skipped.next;
+      continue;
+    }
+    const tag = scanToolMarkupTagAt(raw, i);
+    if (tag) {
+      if (tag.dsmlLike) {
+        styles.dsml = true;
+      } else {
+        styles.canonical = true;
+      }
+      if (styles.dsml && styles.canonical) {
+        return styles;
+      }
+      i = tag.end + 1;
+      continue;
     }
     i += 1;
   }
@@ -235,6 +229,9 @@ function toolMarkupStylesOutsideIgnored(text) {
 
 function replaceDSMLToolMarkupOutsideIgnored(text) {
   const raw = toStringSafe(text);
+  if (!raw) {
+    return '';
+  }
   const lower = raw.toLowerCase();
   let out = '';
   for (let i = 0; i < raw.length;) {
@@ -248,10 +245,14 @@ function replaceDSMLToolMarkupOutsideIgnored(text) {
       i = skipped.next;
       continue;
     }
-    const alias = DSML_TOOL_MARKUP_ALIASES.find(item => lower.startsWith(item.from, i));
-    if (alias) {
-      out += alias.to;
-      i += alias.from.length;
+    const tag = scanToolMarkupTagAt(raw, i);
+    if (tag) {
+      if (tag.dsmlLike) {
+        out += `<${tag.closing ? '/' : ''}${tag.name}${raw.slice(tag.nameEnd, tag.end + 1)}`;
+      } else {
+        out += raw.slice(tag.start, tag.end + 1);
+      }
+      i = tag.end + 1;
       continue;
     }
     out += raw[i];
@@ -417,6 +418,150 @@ function skipXmlIgnoredSection(lower, i) {
   return { advanced: false, blocked: false, next: i };
 }
 
+function scanToolMarkupTagAt(text, start) {
+  const raw = toStringSafe(text);
+  if (!raw || start < 0 || start >= raw.length || raw[start] !== '<') {
+    return null;
+  }
+  const lower = raw.toLowerCase();
+  let i = start + 1;
+  const closing = raw[i] === '/';
+  if (closing) {
+    i += 1;
+  }
+  let dsmlLike = false;
+  if (i < raw.length && isToolMarkupPipe(raw[i])) {
+    dsmlLike = true;
+    i += 1;
+  }
+  if (lower.startsWith('dsml', i)) {
+    dsmlLike = true;
+    i += 'dsml'.length;
+    while (i < raw.length && isToolMarkupSeparator(raw[i])) {
+      i += 1;
+    }
+  }
+  const { name, len } = matchToolMarkupName(lower, i);
+  if (!name) {
+    return null;
+  }
+  const nameEnd = i + len;
+  if (!hasXmlTagBoundary(raw, nameEnd)) {
+    return null;
+  }
+  const end = findXmlTagEnd(raw, nameEnd);
+  if (end < 0) {
+    return null;
+  }
+  return {
+    start,
+    end,
+    nameStart: i,
+    nameEnd,
+    name,
+    closing,
+    selfClosing: raw.slice(start, end + 1).trim().endsWith('/>'),
+    dsmlLike,
+    canonical: !dsmlLike,
+  };
+}
+
+function findToolMarkupTagOutsideIgnored(text, from) {
+  const raw = toStringSafe(text);
+  const lower = raw.toLowerCase();
+  for (let i = Math.max(0, from || 0); i < raw.length;) {
+    const skipped = skipXmlIgnoredSection(lower, i);
+    if (skipped.blocked) {
+      return null;
+    }
+    if (skipped.advanced) {
+      i = skipped.next;
+      continue;
+    }
+    const tag = scanToolMarkupTagAt(raw, i);
+    if (tag) {
+      return tag;
+    }
+    i += 1;
+  }
+  return null;
+}
+
+function findMatchingToolMarkupClose(text, openTag) {
+  const raw = toStringSafe(text);
+  if (!raw || !openTag || !openTag.name || openTag.closing) {
+    return null;
+  }
+  let depth = 1;
+  for (let pos = openTag.end + 1; pos < raw.length;) {
+    const tag = findToolMarkupTagOutsideIgnored(raw, pos);
+    if (!tag) {
+      return null;
+    }
+    if (tag.name !== openTag.name) {
+      pos = tag.end + 1;
+      continue;
+    }
+    if (tag.closing) {
+      depth -= 1;
+      if (depth === 0) {
+        return tag;
+      }
+    } else if (!tag.selfClosing) {
+      depth += 1;
+    }
+    pos = tag.end + 1;
+  }
+  return null;
+}
+
+function findPartialToolMarkupStart(text) {
+  const raw = toStringSafe(text);
+  const lastLT = raw.lastIndexOf('<');
+  if (lastLT < 0) {
+    return -1;
+  }
+  const tail = raw.slice(lastLT);
+  if (tail.includes('>')) {
+    return -1;
+  }
+  const lowerTail = tail.toLowerCase();
+  const candidates = [
+    '<tool_calls', '<invoke', '<parameter',
+    '<|tool_calls', '<|invoke', '<|parameter',
+    '<｜tool_calls', '<｜invoke', '<｜parameter',
+    '<|dsml|tool_calls', '<|dsml|invoke', '<|dsml|parameter',
+    '<dsmltool_calls', '<dsmlinvoke', '<dsmlparameter',
+    '<dsml tool_calls', '<dsml invoke', '<dsml parameter',
+    '<dsml|tool_calls', '<dsml|invoke', '<dsml|parameter',
+    '<|dsmltool_calls', '<|dsmlinvoke', '<|dsmlparameter',
+    '<|dsml tool_calls', '<|dsml invoke', '<|dsml parameter',
+  ];
+  for (const candidate of candidates) {
+    if (candidate.startsWith(lowerTail)) {
+      return lastLT;
+    }
+  }
+  return -1;
+}
+
+function isToolMarkupPipe(ch) {
+  return ch === '|' || ch === '｜';
+}
+
+function isToolMarkupSeparator(ch) {
+  return ch === ' ' || ch === '\t' || ch === '\r' || ch === '\n' || isToolMarkupPipe(ch);
+}
+
+function matchToolMarkupName(lower, start) {
+  for (const name of TOOL_MARKUP_NAMES) {
+    if (lower.startsWith(name, start)) {
+      return { name, len: name.length };
+    }
+  }
+  return { name: '', len: 0 };
+}
+
 function findXmlTagEnd(text, from) {
   let quote = '';
   for (let i = Math.max(0, from || 0); i < text.length; i += 1) {
@@ -494,7 +639,8 @@ function parseMarkupKVObject(text) {
 function parseMarkupValue(raw) {
   const cdata = extractStandaloneCDATA(raw);
   if (cdata.ok) {
-    return cdata.value;
+    const literal = parseJSONLiteralValue(cdata.value);
+    return literal.ok ? literal.value : cdata.value;
   }
   const s = toStringSafe(extractRawTagValue(raw)).trim();
   if (!s) {
@@ -511,12 +657,9 @@ function parseMarkupValue(raw) {
     }
   }
 
-  if (s.startsWith('{') || s.startsWith('[')) {
-    try {
-      return JSON.parse(s);
-    } catch (_err) {
-      return s;
-    }
+  const literal = parseJSONLiteralValue(s);
+  if (literal.ok) {
+    return literal.value;
   }
   return s;
 }
@@ -554,7 +697,63 @@ function extractStandaloneCDATA(inner) {
   if (cdataMatch && cdataMatch[1] !== undefined) {
     return { ok: true, value: cdataMatch[1] };
   }
+  if (s.toLowerCase().startsWith('<![cdata[')) {
+    return { ok: true, value: s.slice('<![CDATA['.length) };
+  }
   return { ok: false, value: '' };
+}
+
+function parseJSONLiteralValue(raw) {
+  const s = toStringSafe(raw).trim();
+  if (!s) {
+    return { ok: false, value: null };
+  }
+  if (!['{', '[', '"', '-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 't', 'f', 'n'].includes(s[0])) {
+    return { ok: false, value: null };
+  }
+  try {
+    return { ok: true, value: JSON.parse(s) };
+  } catch (_err) {
+    return { ok: false, value: null };
+  }
+}
+
+function sanitizeLooseCDATA(text) {
+  const raw = toStringSafe(text);
+  if (!raw) {
+    return '';
+  }
+  const lower = raw.toLowerCase();
+  const openMarker = '<![cdata[';
+  const closeMarker = ']]>';
+
+  let out = '';
+  let pos = 0;
+  let changed = false;
+  while (pos < raw.length) {
+    const startRel = lower.indexOf(openMarker, pos);
+    if (startRel < 0) {
+      out += raw.slice(pos);
+      break;
+    }
+    const start = startRel;
+    const contentStart = start + openMarker.length;
+    out += raw.slice(pos, start);
+
+    const endRel = lower.indexOf(closeMarker, contentStart);
+    if (endRel >= 0) {
+      const end = endRel + closeMarker.length;
+      out += raw.slice(start, end);
+      pos = end;
+      continue;
+    }
+
+    changed = true;
+    out += raw.slice(contentStart);
+    pos = raw.length;
+  }
+
+  return changed ? out : raw;
 }
 
 function parseTagAttributes(raw) {
@@ -631,4 +830,10 @@ module.exports = {
   stripFencedCodeBlocks,
   parseMarkupToolCalls,
   normalizeDSMLToolCallMarkup,
+  containsToolMarkupSyntaxOutsideIgnored,
+  containsToolCallWrapperSyntaxOutsideIgnored,
+  findToolMarkupTagOutsideIgnored,
+  findMatchingToolMarkupClose,
+  findPartialToolMarkupStart,
+  sanitizeLooseCDATA,
 };

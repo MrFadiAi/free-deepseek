@@ -53,6 +53,18 @@ func TestParseToolCallsSupportsDSMLShellWithCanonicalExampleInCDATA(t *testing.T
 	}
 }
 
+func TestParseToolCallsTreatsUnclosedCDATAAsText(t *testing.T) {
+	text := `<tool_calls><invoke name="Write"><parameter name="content"><![CDATA[hello world</parameter></invoke></tool_calls>`
+	res := ParseToolCallsDetailed(text, []string{"Write"})
+	if len(res.Calls) != 1 {
+		t.Fatalf("expected unclosed CDATA to still parse via outer wrapper, got %#v", res.Calls)
+	}
+	got, _ := res.Calls[0].Input["content"].(string)
+	if got != "hello world" {
+		t.Fatalf("expected recovered CDATA payload, got %q", got)
+	}
+}
+
 func TestParseToolCallsNormalizesMixedDSMLAndCanonicalToolTags(t *testing.T) {
 	// Models commonly mix DSML wrapper tags with canonical inner tags.
 	// These should be normalized and parsed, not rejected.
@@ -127,6 +139,23 @@ func TestParseToolCallsSupportsInvokeParameters(t *testing.T) {
 	}
 	if calls[0].Input["city"] != "beijing" || calls[0].Input["unit"] != "c" {
 		t.Fatalf("expected parsed json parameters, got %#v", calls[0].Input)
+	}
+}
+
+func TestParseToolCallsSupportsJSONScalarParameters(t *testing.T) {
+	text := `<tool_calls><invoke name="configure"><parameter name="count">123</parameter><parameter name="max_tokens"><![CDATA[256]]></parameter><parameter name="enabled">true</parameter></invoke></tool_calls>`
+	calls := ParseToolCalls(text, []string{"configure"})
+	if len(calls) != 1 {
+		t.Fatalf("expected 1 call, got %#v", calls)
+	}
+	if got, ok := calls[0].Input["count"].(float64); !ok || got != 123 {
+		t.Fatalf("expected numeric count, got %#v", calls[0].Input["count"])
+	}
+	if got, ok := calls[0].Input["max_tokens"].(float64); !ok || got != 256 {
+		t.Fatalf("expected numeric max_tokens, got %#v", calls[0].Input["max_tokens"])
+	}
+	if got, ok := calls[0].Input["enabled"].(bool); !ok || !got {
+		t.Fatalf("expected boolean enabled, got %#v", calls[0].Input["enabled"])
 	}
 }
 
@@ -475,6 +504,49 @@ func TestParseToolCallsDoesNotAcceptDSMLSpaceLookalikeTagName(t *testing.T) {
 	calls := ParseToolCalls(text, []string{"Read"})
 	if len(calls) != 0 {
 		t.Fatalf("expected no calls from lookalike tag, got %#v", calls)
+	}
+}
+
+func TestParseToolCallsToleratesDSMLCollapsedTagNames(t *testing.T) {
+	todos := `[x] 检查 toolcalls_format.go 格式化逻辑
+[x] 检查 toolcalls_parse.go 解析逻辑
+[x] 检查 toolcalls_xml.go 和 toolcalls_dsml.go
+[x] 检查 toolcalls_markup.go 和 toolcalls_json_repair.go
+[x] 检查 prompt/tool_calls.go 注入逻辑
+[x] 检查 toolstream 流式解析
+[x] 查看测试文件确认预期行为
+[x] 给出调查结论`
+	text := strings.Join([]string{
+		"[]",
+		"<DSMLtool_calls>",
+		"<DSMLinvoke name=\"update_todo_list\">",
+		"<DSMLparameter name=\"todos\"><![CDATA[" + todos + "]]></DSMLparameter>",
+		"</DSMLinvoke>",
+		"</DSMLtool_calls>",
+	}, "\n")
+	calls := ParseToolCalls(text, []string{"update_todo_list"})
+	if len(calls) != 1 {
+		t.Fatalf("expected one call from collapsed DSML tags, got %#v", calls)
+	}
+	if calls[0].Name != "update_todo_list" {
+		t.Fatalf("expected update_todo_list call, got %#v", calls[0])
+	}
+	if got, _ := calls[0].Input["todos"].(string); got != todos {
+		t.Fatalf("expected todos to round-trip, got %q", got)
+	}
+}
+
+func TestParseToolCallsDoesNotAcceptDSMLCollapsedLookalikeTagName(t *testing.T) {
+	text := strings.Join([]string{
+		"<DSMLtool_calls_extra>",
+		"<DSMLinvoke name=\"update_todo_list\">",
+		"<DSMLparameter name=\"todos\">x</DSMLparameter>",
+		"</DSMLinvoke>",
+		"</DSMLtool_calls_extra>",
+	}, "\n")
+	calls := ParseToolCalls(text, []string{"update_todo_list"})
+	if len(calls) != 0 {
+		t.Fatalf("expected no calls from collapsed lookalike tag, got %#v", calls)
 	}
 }
 

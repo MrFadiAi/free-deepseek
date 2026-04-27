@@ -39,8 +39,9 @@
 兼容修复：
 
 - 如果模型漏掉 opening wrapper，但后面仍输出了一个或多个 invoke 并以 closing wrapper 收尾，Go 解析链路会在解析前补回缺失的 opening wrapper。
-- 如果模型把 DSML 标签里的分隔符 `|` 写漏成空格（例如 `<|DSML tool_calls>` / `<|DSML invoke>` / `<|DSML parameter>`，或无 leading pipe 的 `<DSML tool_calls>` 形态），Go / Node 会在固定工具标签名范围内归一化；相似但非工具标签名（如 `tool_calls_extra`）仍按普通文本处理。
+- 如果模型把 DSML 标签里的分隔符 `|` 写漏成空格（例如 `<|DSML tool_calls>` / `<|DSML invoke>` / `<|DSML parameter>`，或无 leading pipe 的 `<DSML tool_calls>` 形态），或把 `DSML` 与工具标签名直接黏连（例如 `<DSMLtool_calls>` / `<DSMLinvoke>` / `<DSMLparameter>`），Go / Node 会在固定工具标签名范围内归一化；相似但非工具标签名（如 `tool_calls_extra`）仍按普通文本处理。
 - 这是一个针对常见模型失误的窄修复，不改变推荐输出格式；prompt 仍要求模型直接输出完整 DSML 外壳。
+- 裸 `<invoke ...>` / `<parameter ...>` 不会被当成“已支持的工具语法”；只有 `tool_calls` wrapper 或可修复的缺失 opening wrapper 才会进入工具调用路径。
 
 ## 2) 非兼容内容
 
@@ -52,20 +53,23 @@
 
 在流式链路中（Go / Node 一致）：
 
-- DSML `<|DSML|tool_calls>` wrapper、兼容变体（`<dsml|tool_calls>`、`<｜tool_calls>`、`<|tool_calls>`）、窄容错空格分隔形态（如 `<|DSML tool_calls>`）和 canonical `<tool_calls>` wrapper 都会进入结构化捕获
+- DSML `<|DSML|tool_calls>` wrapper、兼容变体（`<dsml|tool_calls>`、`<｜tool_calls>`、`<|tool_calls>`）、窄容错空格分隔形态（如 `<|DSML tool_calls>`）、黏连形态（如 `<DSMLtool_calls>`）和 canonical `<tool_calls>` wrapper 都会进入结构化捕获
 - 如果流里直接从 invoke 开始，但后面补上了 closing wrapper，Go 流式筛分也会按缺失 opening wrapper 的修复路径尝试恢复
 - 已识别成功的工具调用不会再次回流到普通文本
 - 不符合新格式的块不会执行，并继续按原样文本透传
 - fenced code block（反引号 `` ``` `` 和波浪线 `~~~`）中的 XML 示例始终按普通文本处理
 - 支持嵌套围栏（如 4 反引号嵌套 3 反引号）和 CDATA 内围栏保护
+- 如果模型把 `<![CDATA[` 打开后却没有闭合，流式扫描阶段仍会保守地继续缓冲，不会误把 CDATA 里的示例 XML 当成真实工具调用；在最终 parse / flush 恢复阶段，会对这类 loose CDATA 做窄修复，尽量保住外层已完整包裹的真实工具调用
 - 当文本中 mention 了某种标签名（如 `<dsml|tool_calls>` 或 Markdown inline code 里的 `<|DSML|tool_calls>`）而后面紧跟真正工具调用时，sieve 会跳过不可解析的 mention 候选并继续匹配后续真实工具块，不会因 mention 导致工具调用丢失，也不会截断 mention 后的正文
+
+另外，`<parameter>` 的值如果本身是合法 JSON 字面量，也会按结构化值解析，而不是一律保留为字符串。例如 `123`、`true`、`null`、`[1,2]`、`{"a":1}` 都会还原成对应的 number / boolean / null / array / object。
 
 ## 4) 输出结构
 
 `ParseToolCallsDetailed` / `parseToolCallsDetailed` 返回：
 
 - `calls`：解析出的工具调用列表（`name` + `input`）
-- `sawToolCallSyntax`：检测到 DSML / canonical wrapper，或命中“缺失 opening wrapper 但可修复”的形态时会为 `true`
+- `sawToolCallSyntax`：检测到 DSML / canonical wrapper，或命中“缺失 opening wrapper 但可修复”的形态时会为 `true`；裸 `invoke` 不计入该标记
 - `rejectedByPolicy`：当前固定为 `false`
 - `rejectedToolNames`：当前固定为空数组
 
@@ -88,7 +92,7 @@ node --test tests/node/stream-tool-sieve.test.js
 
 - DSML `<|DSML|tool_calls>` wrapper 正常解析
 - legacy canonical `<tool_calls>` wrapper 正常解析
-- 别名变体（`<dsml|tool_calls>`、`<｜tool_calls>`、`<|tool_calls>`）和 DSML 空格分隔 typo（如 `<|DSML tool_calls>`）正常解析
+- 别名变体（`<dsml|tool_calls>`、`<｜tool_calls>`、`<|tool_calls>`）、DSML 空格分隔 typo（如 `<|DSML tool_calls>`）和黏连 typo（如 `<DSMLtool_calls>`）正常解析
 - 混搭标签（DSML wrapper + canonical inner）归一化后正常解析
 - 波浪线围栏 `~~~` 内的示例不执行
 - 嵌套围栏（4 反引号嵌套 3 反引号）内的示例不执行

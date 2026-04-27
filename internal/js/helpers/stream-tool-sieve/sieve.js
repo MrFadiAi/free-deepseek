@@ -6,8 +6,9 @@ const {
 } = require('./state');
 const { trimWrappingJSONFence } = require('./jsonscan');
 const {
-  XML_TOOL_SEGMENT_TAGS,
-} = require('./tool-keywords');
+  findToolMarkupTagOutsideIgnored,
+  sanitizeLooseCDATA,
+} = require('./parse_payload');
 const {
   consumeXMLToolCapture: consumeXMLToolCaptureImpl,
   hasOpenXMLToolTag,
@@ -117,8 +118,27 @@ function flushToolSieve(state, toolNames) {
       }
     } else if (state.capture) {
       const content = state.capture;
-      noteText(state, content);
-      events.push({ type: 'text', text: content });
+      const recovered = sanitizeLooseCDATA(content);
+      if (recovered !== content) {
+        const recoveredResult = consumeXMLToolCaptureImpl(recovered, toolNames, trimWrappingJSONFence);
+        if (recoveredResult.ready && Array.isArray(recoveredResult.calls) && recoveredResult.calls.length > 0) {
+          if (recoveredResult.prefix) {
+            noteText(state, recoveredResult.prefix);
+            events.push({ type: 'text', text: recoveredResult.prefix });
+          }
+          events.push({ type: 'tool_calls', calls: recoveredResult.calls });
+          if (recoveredResult.suffix) {
+            noteText(state, recoveredResult.suffix);
+            events.push({ type: 'text', text: recoveredResult.suffix });
+          }
+        } else {
+          noteText(state, content);
+          events.push({ type: 'text', text: content });
+        }
+      } else {
+        noteText(state, content);
+        events.push({ type: 'text', text: content });
+      }
     }
     state.capture = '';
     state.capturing = false;
@@ -155,26 +175,16 @@ function findToolSegmentStart(state, s) {
   if (!s) {
     return -1;
   }
-  const lower = s.toLowerCase();
   let offset = 0;
   while (true) {
-    // Only check XML tool tags.
-    let bestIdx = -1;
-    let matchedTag = '';
-    for (const tag of XML_TOOL_SEGMENT_TAGS) {
-      const idx = lower.indexOf(tag, offset);
-      if (idx >= 0 && (bestIdx < 0 || idx < bestIdx)) {
-        bestIdx = idx;
-        matchedTag = tag;
-      }
-    }
-    if (bestIdx < 0) {
+    const tag = findToolMarkupTagOutsideIgnored(s, offset);
+    if (!tag) {
       return -1;
     }
-    if (!insideCodeFenceWithState(state, s.slice(0, bestIdx))) {
-      return bestIdx;
+    if (!insideCodeFenceWithState(state, s.slice(0, tag.start))) {
+      return tag.start;
     }
-    offset = bestIdx + matchedTag.length;
+    offset = tag.end + 1;
   }
 }
 

@@ -65,6 +65,12 @@ func parseToolCallsDetailedXMLOnly(text string) ToolCallParseResult {
 		return result
 	}
 	parsed := parseXMLToolCalls(normalized)
+	if len(parsed) == 0 && strings.Contains(strings.ToLower(normalized), "<![cdata[") {
+		recovered := SanitizeLooseCDATA(normalized)
+		if recovered != normalized {
+			parsed = parseXMLToolCalls(recovered)
+		}
+	}
 	if len(parsed) == 0 {
 		return result
 	}
@@ -92,14 +98,8 @@ func filterToolCallsDetailed(parsed []ParsedToolCall) ([]ParsedToolCall, []strin
 }
 
 func looksLikeToolCallSyntax(text string) bool {
-	lower := strings.ToLower(text)
-	return strings.Contains(lower, "<|dsml|tool_calls") ||
-		strings.Contains(lower, "<|dsml tool_calls") ||
-		strings.Contains(lower, "<dsml|tool_calls") ||
-		strings.Contains(lower, "<dsml tool_calls") ||
-		strings.Contains(lower, "<｜tool_calls") ||
-		strings.Contains(lower, "<|tool_calls") ||
-		strings.Contains(lower, "<tool_calls")
+	hasDSML, hasCanonical := ContainsToolCallWrapperSyntaxOutsideIgnored(text)
+	return hasDSML || hasCanonical
 }
 
 func stripFencedCodeBlocks(text string) string {

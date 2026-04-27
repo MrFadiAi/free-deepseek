@@ -114,10 +114,30 @@ func Flush(state *State, toolNames []string) []Event {
 		} else {
 			content := state.capture.String()
 			if content != "" {
-				// If capture never resolved into a real tool call, release the
-				// buffered text instead of swallowing it.
-				state.noteText(content)
-				events = append(events, Event{Content: content})
+				recovered := toolcall.SanitizeLooseCDATA(content)
+				if recovered != content {
+					if prefix, calls, suffix, recoveredReady := consumeXMLToolCapture(recovered, toolNames); recoveredReady && len(calls) > 0 {
+						if prefix != "" {
+							state.noteText(prefix)
+							events = append(events, Event{Content: prefix})
+						}
+						events = append(events, Event{ToolCalls: calls})
+						if suffix != "" {
+							state.noteText(suffix)
+							events = append(events, Event{Content: suffix})
+						}
+					} else {
+						// If capture never resolved into a real tool call, release
+						// the buffered text instead of swallowing it.
+						state.noteText(content)
+						events = append(events, Event{Content: content})
+					}
+				} else {
+					// If capture never resolved into a real tool call, release the
+					// buffered text instead of swallowing it.
+					state.noteText(content)
+					events = append(events, Event{Content: content})
+				}
 			}
 		}
 		state.capture.Reset()

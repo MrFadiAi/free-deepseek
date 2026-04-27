@@ -111,5 +111,72 @@ func extractStandaloneCDATA(inner string) (string, bool) {
 	if cdataMatches := cdataPattern.FindStringSubmatch(trimmed); len(cdataMatches) >= 2 {
 		return cdataMatches[1], true
 	}
+	if strings.HasPrefix(strings.ToLower(trimmed), "<![cdata[") {
+		return trimmed[len("<![CDATA["):], true
+	}
 	return "", false
+}
+
+func parseJSONLiteralValue(raw string) (any, bool) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return nil, false
+	}
+
+	switch trimmed[0] {
+	case '{', '[', '"', '-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 't', 'f', 'n':
+	default:
+		return nil, false
+	}
+
+	var parsed any
+	if err := json.Unmarshal([]byte(trimmed), &parsed); err != nil {
+		return nil, false
+	}
+	return parsed, true
+}
+
+// SanitizeLooseCDATA repairs malformed trailing CDATA openings just enough for
+// final parsing and flush-time recovery. Properly closed CDATA blocks are left
+// untouched; an unclosed opener is stripped so the remaining text can still be
+// parsed as part of the surrounding tool markup.
+func SanitizeLooseCDATA(text string) string {
+	if text == "" {
+		return ""
+	}
+
+	lower := strings.ToLower(text)
+	const openMarker = "<![cdata["
+	const closeMarker = "]]>"
+
+	var b strings.Builder
+	b.Grow(len(text))
+	changed := false
+	pos := 0
+	for pos < len(text) {
+		startRel := strings.Index(lower[pos:], openMarker)
+		if startRel < 0 {
+			b.WriteString(text[pos:])
+			break
+		}
+		start := pos + startRel
+		contentStart := start + len(openMarker)
+		b.WriteString(text[pos:start])
+
+		if endRel := strings.Index(lower[contentStart:], closeMarker); endRel >= 0 {
+			end := contentStart + endRel + len(closeMarker)
+			b.WriteString(text[start:end])
+			pos = end
+			continue
+		}
+
+		changed = true
+		b.WriteString(text[contentStart:])
+		pos = len(text)
+	}
+
+	if !changed {
+		return text
+	}
+	return b.String()
 }
