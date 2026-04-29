@@ -53,16 +53,40 @@ Common aliases (e.g. `gpt-4.1`, `gpt-5`, `o3`, `claude-*`, `gemini-*`) are also 
 
 ## Quick Start
 
-### Option 1: Download Release Binary
+### Option 1: Run from Source
+
+**Prerequisites**: [Go 1.24+](https://go.dev/dl/), Node.js 20.19+ (for WebUI build only)
+
+**Install Go** — download from [go.dev/dl](https://go.dev/dl/) or use your package manager:
 
 ```bash
-# Download the latest release for your platform
-tar -xzf free-deepseek_<tag>_linux_amd64.tar.gz
-cd free-deepseek_<tag>_linux_amd64
-cp config.example.json config.json
-# Edit config.json with your DeepSeek accounts
-./ds2api
+# Linux (amd64)
+wget https://go.dev/dl/go1.24.3.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.24.3.linux-amd64.tar.gz
+echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc && source ~/.bashrc
+go version
+
+# macOS
+brew install go
+
+# Windows — download the MSI from https://go.dev/dl/ and run the installer
 ```
+
+Then clone, configure, and run:
+
+```bash
+git clone https://github.com/MrFadiAi/free-deepseek.git
+cd free-deepseek
+cp config.example.json config.json
+# Edit config.json with your DeepSeek account credentials
+go run ./cmd/ds2api
+```
+
+Default URL: `http://127.0.0.1:5001`
+
+The server binds to `0.0.0.0:5001`, so LAN devices can access it via your internal IP.
+
+> **WebUI auto-build**: On first launch, if `static/admin` doesn't exist, the server will automatically run `npm ci` and `npm run build`.
 
 ### Option 2: Docker
 
@@ -79,24 +103,6 @@ docker-compose up -d
 2. Import in Vercel
 3. Set environment variables (`DS2API_ADMIN_KEY`, `DS2API_CONFIG_JSON`)
 4. Deploy
-
-### Option 4: Run from Source
-
-**Prerequisites**: Go 1.26+, Node.js 20.19+ (for WebUI build only)
-
-```bash
-git clone https://github.com/stringtiger99/free-deepseek.git
-cd free-deepseek
-cp config.example.json config.json
-# Edit config.json with your DeepSeek account credentials
-go run ./cmd/ds2api
-```
-
-Default URL: `http://127.0.0.1:5001`
-
-The server binds to `0.0.0.0:5001`, so LAN devices can access it via your internal IP.
-
-> **WebUI auto-build**: On first launch, if `static/admin` doesn't exist, the server will automatically run `npm ci` and `npm run build`.
 
 ## Configuration
 
