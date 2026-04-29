@@ -8,12 +8,6 @@
   <strong>DeepSeek Web Chat → OpenAI / Claude / Gemini Compatible API</strong>
 </p>
 
-<p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/stringtiger99/free-deepseek.svg" alt="License" /></a>
-  <img src="https://img.shields.io/github/stars/stringtiger99/free-deepseek.svg" alt="Stars" />
-  <img src="https://img.shields.io/github/forks/stringtiger99/free-deepseek.svg" alt="Forks" />
-  <a href="https://github.com/stringtiger99/free-deepseek/releases"><img src="https://img.shields.io/github/v/release/stringtiger99/free-deepseek?display_name=tag" alt="Release" /></a>
-</p>
 
 ---
 
