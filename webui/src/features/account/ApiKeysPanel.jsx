@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, ChevronDown, Copy, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Check, ChevronDown, Copy, Globe, Pencil, Plus, Trash2 } from 'lucide-react'
 import clsx from 'clsx'
 
 import { maskSecret } from '../../utils/maskSecret'
@@ -40,6 +40,26 @@ export default function ApiKeysPanel({
     onDeleteKey,
 }) {
     const [failedKey, setFailedKey] = useState(null)
+    const [copiedUrl, setCopiedUrl] = useState(false)
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+
+    const handleCopyUrl = async () => {
+        try {
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(baseUrl)
+            } else {
+                fallbackCopyText(baseUrl)
+            }
+            setCopiedUrl(true)
+            setTimeout(() => setCopiedUrl(false), 2000)
+        } catch {
+            try {
+                fallbackCopyText(baseUrl)
+                setCopiedUrl(true)
+                setTimeout(() => setCopiedUrl(false), 2000)
+            } catch { /* ignore */ }
+        }
+    }
     const apiKeys = Array.isArray(config?.api_keys) && config.api_keys.length > 0
         ? config.api_keys
         : (config?.keys || []).map(key => ({ key, name: '', remark: '' }))
@@ -69,6 +89,24 @@ export default function ApiKeysPanel({
 
     return (
         <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+            {/* Base URL bar — always visible */}
+            {baseUrl && (
+                <div className="flex items-center gap-3 px-6 py-3 bg-muted/30 border-b border-border">
+                    <Globe className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider shrink-0">{t('accountManager.baseUrlLabel')}</span>
+                    <code className="text-sm font-mono text-foreground flex-1 truncate select-all">{baseUrl}</code>
+                    <button
+                        onClick={handleCopyUrl}
+                        className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-colors shrink-0"
+                        title={t('accountManager.copyKeyTitle')}
+                    >
+                        {copiedUrl ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                    {copiedUrl && (
+                        <span className="text-xs text-green-500 animate-pulse shrink-0">{t('accountManager.baseUrlCopied')}</span>
+                    )}
+                </div>
+            )}
             <div
                 className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer select-none hover:bg-muted/30 transition-colors"
                 onClick={() => setKeysExpanded(!keysExpanded)}

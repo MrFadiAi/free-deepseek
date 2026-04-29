@@ -119,6 +119,8 @@
         "copied": "已复制",
         "copyFailed": "复制失败",
         "copyKeyTitle": "复制密钥",
+        "baseUrlLabel": "Base URL",
+        "baseUrlCopied": "Base URL copied!",
         "deleteKeyTitle": "删除密钥",
         "noApiKeys": "未找到 API 密钥",
         "accountsTitle": "DeepSeek 账号",

@@ -119,6 +119,8 @@
         "copied": "Copied",
         "copyFailed": "Copy failed",
         "copyKeyTitle": "Copy key",
+        "baseUrlLabel": "Base URL",
+        "baseUrlCopied": "Base URL copied!",
         "deleteKeyTitle": "Delete key",
         "noApiKeys": "No API keys found.",
         "accountsTitle": "DeepSeek Accounts",
