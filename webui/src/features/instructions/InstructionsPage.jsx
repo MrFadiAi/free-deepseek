@@ -241,6 +241,46 @@ aider --model deepseek-v4-pro`,
 Override OpenAI Base URL: ${baseUrl}/v1
 API Key: your-api-key
 Model: deepseek-v4-pro`,
+
+    goInstallLinux: `# Download and install Go 1.26+
+wget https://go.dev/dl/go1.24.3.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.24.3.linux-amd64.tar.gz
+echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+source ~/.bashrc
+go version`,
+
+    goInstallMac: `# Install Go via Homebrew
+brew install go
+go version`,
+
+    goInstallWindows: `# Download the MSI installer from https://go.dev/dl/
+# Run the installer, Go will be added to your PATH automatically
+# Open a new terminal and verify:
+go version`,
+
+    selfHostLinux: `# 1. Install Go (https://go.dev/dl/)
+wget https://go.dev/dl/go1.24.3.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.24.3.linux-amd64.tar.gz
+export PATH=$PATH:/usr/local/go/bin
+
+# 2. Clone and build
+git clone https://github.com/MrFadiAi/free-deepseek.git
+cd free-deepseek
+
+# 3. Configure
+cp config.example.json config.json
+# Edit config.json - add your DeepSeek account credentials
+
+# 4. Run
+go run ./cmd/ds2api
+
+# Server starts at http://127.0.0.1:5001`,
+
+    selfHostDocker: `# Using Docker Compose
+cp .env.example .env
+cp config.example.json config.json
+# Edit .env (set DS2API_ADMIN_KEY) and config.json (add accounts)
+docker-compose up -d`,
 }
 
 const models = [
@@ -358,6 +398,55 @@ export default function InstructionsPage() {
                     <code className="bg-muted px-1.5 py-0.5 rounded text-xs">x-api-key: &lt;key&gt;</code>,{' '}
                     or <code className="bg-muted px-1.5 py-0.5 rounded text-xs">?key=&lt;key&gt;</code>
                 </p>
+            </Section>
+
+            {/* Self-Host / Deploy */}
+            <Section id="self-host" title="Self-Host / Deploy" icon="🖥️">
+                <p className="text-sm text-muted-foreground">
+                    Run Free DeepSeek on your own server. You need <strong>Go 1.24+</strong> and optionally <strong>Node.js 20.19+</strong> (for WebUI build).
+                </p>
+                <div className="space-y-4">
+                    <div className="space-y-3">
+                        <h3 className="text-base font-semibold">Step 1 — Install Go</h3>
+                        <p className="text-sm text-muted-foreground">
+                            Download Go from <a href="https://go.dev/dl/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">go.dev/dl</a> or use your package manager:
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="space-y-2">
+                                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Linux</div>
+                                <CodeBlock code={CODE.goInstallLinux} />
+                            </div>
+                            <div className="space-y-2">
+                                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">macOS</div>
+                                <CodeBlock code={CODE.goInstallMac} />
+                            </div>
+                            <div className="space-y-2">
+                                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Windows</div>
+                                <CodeBlock code={CODE.goInstallWindows} />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <h3 className="text-base font-semibold">Step 2 — Clone, Configure &amp; Run</h3>
+                        <CodeBlock code={CODE.selfHostLinux} />
+                    </div>
+
+                    <div className="space-y-3">
+                        <h3 className="text-base font-semibold">Alternative — Docker</h3>
+                        <CodeBlock code={CODE.selfHostDocker} />
+                    </div>
+
+                    <div className="bg-muted/40 border border-border rounded-lg p-4 space-y-2">
+                        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Notes</div>
+                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                            <li>Default port is <code className="bg-muted px-1 py-0.5 rounded text-xs">5001</code> (change via <code className="bg-muted px-1 py-0.5 rounded text-xs">PORT</code> env var).</li>
+                            <li>Server binds to <code className="bg-muted px-1 py-0.5 rounded text-xs">0.0.0.0:5001</code> — accessible from your LAN.</li>
+                            <li>WebUI auto-builds on first run if <code className="bg-muted px-1 py-0.5 rounded text-xs">static/admin</code> is missing (requires Node.js).</li>
+                            <li>Admin panel available at <code className="bg-muted px-1 py-0.5 rounded text-xs">http://your-host:5001/admin</code>.</li>
+                        </ul>
+                    </div>
+                </div>
             </Section>
 
             {/* OpenAI Compatible */}
