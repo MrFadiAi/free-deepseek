@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-// Challenge 对应 /api/v0/chat/create_pow_challenge 返回 dem data.biz_data.challenge。
+// Challenge corresponds to /api/v0/chat/create_pow_challenge response data.biz_data.challenge.
 type Challenge struct {
 	Algorithm  string `json:"algorithm"`
 	Challenge  string `json:"challenge"`
@@ -21,13 +21,13 @@ type Challenge struct {
 	TargetPath string `json:"target_path"`
 }
 
-// BuildPrefix: "<salt>_<expire_at>_" (对应 pow.go:89)
+// BuildPrefix returns "<salt>_<expire_at>_" (matches pow.go:89).
 func BuildPrefix(salt string, expireAt int64) string {
 	return salt + "_" + strconv.FormatInt(expireAt, 10) + "_"
 }
 
-// SolvePow 搜索 nonce ∈ [0, difficulty) 使得 DeepSeekHashV1(prefix+str(nonce)) == challenge。
-// prefix 预吸收进 state,循环内零分配。
+// SolvePow searches for nonce in [0, difficulty) such that DeepSeekHashV1(prefix+str(nonce)) == challenge.
+// prefix is pre-absorbed into state; zero allocations inside the loop.
 func SolvePow(ctx context.Context, challengeHex, salt string, expireAt, difficulty int64) (int64, error) {
 	if len(challengeHex) != 64 {
 		return 0, errors.New("pow: challenge must be 64 hex chars")
@@ -117,8 +117,8 @@ func SolvePow(ctx context.Context, challengeHex, salt string, expireAt, difficul
 	return 0, errors.New("pow: no solution within difficulty")
 }
 
-// BuildPowHeader 序列化 {algorithm,challenge,salt,answer,signature,target_path} 为 base64(JSON)。
-// 不含 difficulty/expire_at (对应 pow.go:218)。
+// BuildPowHeader serializes {algorithm,challenge,salt,answer,signature,target_path} as base64(JSON).
+// Does not include difficulty/expire_at (matches pow.go:218).
 func BuildPowHeader(c *Challenge, answer int64) (string, error) {
 	b, err := json.Marshal(map[string]any{
 		"algorithm": c.Algorithm, "challenge": c.Challenge, "salt": c.Salt,
@@ -130,7 +130,7 @@ func BuildPowHeader(c *Challenge, answer int64) (string, error) {
 	return base64.StdEncoding.EncodeToString(b), nil
 }
 
-// SolveAndBuildHeader 端到端: Challenge → x-ds-pow-response header string。
+// SolveAndBuildHeader is end-to-end: Challenge → x-ds-pow-response header string.
 func SolveAndBuildHeader(ctx context.Context, c *Challenge) (string, error) {
 	if c.Algorithm != "DeepSeekHashV1" {
 		return "", errors.New("pow: unsupported algorithm: " + c.Algorithm)

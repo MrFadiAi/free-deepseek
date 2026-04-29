@@ -4,7 +4,7 @@ kind: Template
 metadata:
   name: DS2API
 spec:
-  description: DeepSeek Web 对话转 OpenAI/Claude/Gemini 兼容 API（Go 实现，含 WebUI）
+  description: DeepSeek Web chat to OpenAI/Claude/Gemini compatible API (Go, with WebUI)
   tags:
     - DeepSeek
     - API

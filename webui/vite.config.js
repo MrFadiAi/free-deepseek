@@ -16,21 +16,21 @@ export default defineConfig(({ mode }) => ({
             allow: [repoRoot],
         },
         proxy: {
-            // 代理 /admin 下的 API 请求到后端
+            // Proxy /admin API requests to backend
             '/admin': {
                 target: 'http://localhost:5001',
                 changeOrigin: true,
-                // 只代理 API 请求，页面请求返回 false 让 Vite 处理
+                // Only proxy API requests; return false for page requests to let Vite handle them
                 bypass(req, res, proxyOptions) {
                     const url = req.url
-                    // 精确的 /admin 或 /admin/ 是页面请求，不代理
+                    // Exact /admin or /admin/ is a page request, don't proxy
                     if (url === '/admin' || url === '/admin/' || url === '/admin?') {
                         console.log('[Vite Proxy] Bypass (page):', url)
                         return '/index.html'
                     }
-                    // 其他 /admin/* 路径都是 API 请求，代理到后端
+                    // Other /admin/* paths are API requests, proxy to backend
                     console.log('[Vite Proxy] Proxy to backend:', url)
-                    // 返回 undefined 或 null 表示不跳过代理
+                    // Return undefined or null to skip bypass (i.e. proceed with proxy)
                 },
             },
             '/v1': {

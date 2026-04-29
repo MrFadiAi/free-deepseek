@@ -1,5 +1,5 @@
-// Package pow 提供 DeepSeekHashV1 纯 Go 实现。
-// DeepSeekHashV1 = SHA3-256 但跳过 Keccak-f[1600] round 0 (只做 rounds 1..23)。
+// Package pow provides a pure Go implementation of DeepSeekHashV1.
+// DeepSeekHashV1 = SHA3-256 but skips Keccak-f[1600] round 0 (only rounds 1..23).
 package pow
 
 import "encoding/binary"
@@ -121,7 +121,7 @@ func keccakF23(s *[25]uint64) {
 	s[20], s[21], s[22], s[23], s[24] = a20, a21, a22, a23, a24
 }
 
-// DeepSeekHashV1 返回 data 的 32 字节摘要,与 WASM wasm_deepseek_hash_v1 等价。
+// DeepSeekHashV1 returns the 32-byte digest of data, equivalent to WASM wasm_deepseek_hash_v1.
 func DeepSeekHashV1(data []byte) [32]byte {
 	const rate = 136
 	var s [25]uint64

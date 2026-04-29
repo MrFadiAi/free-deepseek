@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// 测试向量来自直接调用 DeepSeek 官方 WASM。
+// Test vectors from direct calls to the official DeepSeek WASM.
 func TestDeepSeekHashV1(t *testing.T) {
 	for _, tc := range []struct{ in, want string }{
 		{"", "e594808bc5b7151ac160c6d39a02e0a8e261ed588578403099e3561dc40c26b3"},

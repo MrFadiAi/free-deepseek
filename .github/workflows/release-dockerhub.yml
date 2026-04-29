@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version_type:
-        description: '版本类型'
+        description: 'Version type'
         required: true
         default: 'patch'
         type: choice
@@ -96,7 +96,7 @@ jobs:
           git tag -a "$NEW_TAG" -m "Release $NEW_TAG"
           git push origin HEAD:main "$NEW_TAG"
 
-      # Docker 构建并推送到 Docker Hub
+      # Docker build and push to Docker Hub
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
