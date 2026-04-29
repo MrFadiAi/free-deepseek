@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import en from './locales/en.json'
 import zh from './locales/zh.json'
 
-const STORAGE_KEY = 'ds2api_lang'
+const STORAGE_KEY = 'freedeepseek_lang'
 const translations = { en, zh }
 
 const I18nContext = createContext({
@@ -12,8 +12,7 @@ const I18nContext = createContext({
 })
 
 const getBrowserLang = () => {
-    if (typeof navigator === 'undefined') return 'zh'
-    return navigator.language?.toLowerCase().startsWith('zh') ? 'zh' : 'en'
+    return 'en'
 }
 
 const getValue = (obj, key) => {

@@ -1,6 +1,6 @@
 import React from 'react'
 import { useI18n } from '../i18n'
-import LanguageToggle from './LanguageToggle'
+
 
 const LandingPage = ({ onEnter }) => {
     const { t } = useI18n()
@@ -22,15 +22,15 @@ const LandingPage = ({ onEnter }) => {
                     width: 100%;
                     height: 100%;
                     z-index: 0;
-                    background: 
-                        radial-gradient(circle at 20% 30%, rgba(245, 158, 11, 0.05) 0%, transparent 40%),
-                        radial-gradient(circle at 80% 70%, rgba(239, 68, 68, 0.05) 0%, transparent 40%);
+                    background:
+                        radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
+                        radial-gradient(circle at 80% 70%, rgba(37, 99, 235, 0.05) 0%, transparent 40%);
                 }
                 .blob {
                     position: absolute;
                     width: 400px;
                     height: 400px;
-                    background: linear-gradient(135deg, #f59e0b, #ef4444);
+                    background: linear-gradient(135deg, #3b82f6, #2563eb);
                     filter: blur(80px);
                     opacity: 0.15;
                     border-radius: 50%;
@@ -55,7 +55,7 @@ const LandingPage = ({ onEnter }) => {
                     font-family: 'Orbitron', sans-serif;
                     font-size: clamp(3rem, 10vw, 5rem);
                     font-weight: 700;
-                    background: linear-gradient(135deg, #f59e0b, #ef4444);
+                    background: linear-gradient(135deg, #3b82f6, #2563eb);
                     -webkit-background-clip: text;
                     -webkit-text-fill-color: transparent;
                     background-clip: text;
@@ -63,11 +63,11 @@ const LandingPage = ({ onEnter }) => {
                     margin-bottom: 0.5rem;
                 }
                 .btn-premium {
-                    background: linear-gradient(135deg, #f59e0b, #ef4444);
-                    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+                    background: linear-gradient(135deg, #3b82f6, #2563eb);
+                    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
                 }
                 .btn-premium:hover {
-                    box-shadow: 0 8px 25px rgba(245, 158, 11, 0.6);
+                    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.6);
                     transform: translateY(-3px) scale(1.02);
                 }
                 .glass-card {
@@ -77,7 +77,7 @@ const LandingPage = ({ onEnter }) => {
                     transition: all 0.3s ease;
                 }
                 .glass-card:hover {
-                    border-color: rgba(245, 158, 11, 0.3);
+                    border-color: rgba(59, 130, 246, 0.3);
                     background: rgba(255, 255, 255, 0.05);
                     transform: translateY(-5px);
                 }
@@ -87,15 +87,12 @@ const LandingPage = ({ onEnter }) => {
             <div className="blob" style={{ top: '10%', left: '15%' }} />
             <div className="blob" style={{ bottom: '10%', right: '15%', animationDelay: '-5s' }} />
 
-            <div className="absolute top-6 right-6 z-20">
-                <LanguageToggle />
-            </div>
 
             <div className="landing-content">
                 <header className="mb-12">
-                    <h1 className="logo-text">DS2API</h1>
+                    <h1 className="logo-text">FREE DEEPSEEK</h1>
                     <p className="text-gray-400 text-xl max-w-2xl mx-auto leading-relaxed">
-                        DeepSeek to OpenAI & Claude Compatible API Interface
+                        Free DeepSeek API — Compatible with OpenAI, Claude & Gemini
                     </p>
                 </header>
 
@@ -114,7 +111,7 @@ const LandingPage = ({ onEnter }) => {
                         <span>📡</span> {t('landing.apiStatus')}
                     </a>
                     <a
-                        href="https://github.com/CJackHwang/ds2api"
+                        href="https://github.com/MrFadiAi/free-deepseek"
                         target="_blank"
                         className="glass-card text-white px-8 py-3 rounded-xl font-semibold transition-all flex items-center gap-2"
                     >
@@ -138,7 +135,7 @@ const LandingPage = ({ onEnter }) => {
                 </div>
 
                 <footer className="mt-20 opacity-40 text-sm">
-                    <p>&copy; 2026 DS2API Project. Designed for flexibility & performance.</p>
+                    <p>&copy; 2026 Free DeepSeek. All rights reserved.</p>
                 </footer>
             </div>
         </div>

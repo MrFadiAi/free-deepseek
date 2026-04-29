@@ -445,7 +445,7 @@
         "rememberSession": "记住登录状态",
         "signIn": "登录",
         "secureConnection": "安全连接",
-        "adminPortal": "DS2API 管理员门户",
+        "adminPortal": "Free DeepSeek admin portal",
         "signInFailed": "登录失败",
         "networkError": "网络错误: {error}"
     },

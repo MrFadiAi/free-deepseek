@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Key, ArrowRight, ShieldCheck, Lock, Check } from 'lucide-react'
 import clsx from 'clsx'
 import { useI18n } from '../i18n'
-import LanguageToggle from './LanguageToggle'
+
 
 export default function Login({ onLogin, onMessage }) {
     const { t } = useI18n()
@@ -27,8 +27,8 @@ export default function Login({ onLogin, onMessage }) {
 
             if (res.ok && data.success) {
                 const storage = remember ? localStorage : sessionStorage
-                storage.setItem('ds2api_token', data.token)
-                storage.setItem('ds2api_token_expires', Date.now() + data.expires_in * 1000)
+                storage.setItem('freedeepseek_token', data.token)
+                storage.setItem('freedeepseek_token_expires', Date.now() + data.expires_in * 1000)
 
                 onLogin(data.token)
                 if (data.message) {
@@ -46,9 +46,6 @@ export default function Login({ onLogin, onMessage }) {
 
     return (
         <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-background text-foreground">
-            <div className="absolute top-6 right-6">
-                <LanguageToggle />
-            </div>
 
             <div className="w-full max-w-[400px] relative z-10 animate-in fade-in zoom-in-95 duration-200">
                 <div className="w-full bg-card border border-border rounded-xl p-8 shadow-sm">

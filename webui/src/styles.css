@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Modern Flat Theme (Big Tech Style) - Zinc & Amber */
+/* Modern Flat Theme (Big Tech Style) - Zinc & Blue */
 :root {
   /* Base - Deep Matte Zinc */
   --color-background: hsl(240 10% 3.9%);
@@ -15,8 +15,8 @@
   --color-popover: hsl(240 10% 3.9%);
   --color-popover-foreground: hsl(0 0% 98%);
 
-  /* Primary Accent - Warm Amber/Gold */
-  --color-primary: hsl(45 93% 47%);
+  /* Primary Accent - Cool Blue */
+  --color-primary: hsl(217 91% 60%);
   --color-primary-foreground: hsl(240 10% 3.9%);
 
   /* Secondary */
@@ -35,7 +35,7 @@
 
   --color-border: hsl(240 3.7% 15.9%);
   --color-input: hsl(240 3.7% 15.9%);
-  --color-ring: hsl(45 93% 47%);
+  --color-ring: hsl(217 91% 60%);
 
   --radius: 0.5rem;
 }

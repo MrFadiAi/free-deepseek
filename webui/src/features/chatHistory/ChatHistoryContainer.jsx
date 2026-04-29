@@ -7,7 +7,7 @@ import { useI18n } from '../../i18n'
 const LIMIT_OPTIONS = [0, 10, 20, 50]
 const DISABLED_LIMIT = 0
 const MESSAGE_COLLAPSE_AT = 700
-const VIEW_MODE_KEY = 'ds2api_chat_history_view_mode'
+const VIEW_MODE_KEY = 'freedeepseek_chat_history_view_mode'
 const BEGIN_SENTENCE_MARKER = '<｜begin▁of▁sentence｜>'
 const SYSTEM_MARKER = '<｜System｜>'
 const USER_MARKER = '<｜User｜>'
