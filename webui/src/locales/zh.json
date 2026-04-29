@@ -29,6 +29,10 @@
             "label": "Vercel 同步",
             "desc": "同步配置到 Vercel"
         },
+        "instructions": {
+            "label": "Instructions",
+            "desc": "API integration guides and client setup"
+        },
         "settings": {
             "label": "设置中心",
             "desc": "在线修改系统设置与配置"

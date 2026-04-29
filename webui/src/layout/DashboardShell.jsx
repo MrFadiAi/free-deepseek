@@ -6,13 +6,12 @@ import {
     Cloud,
     Settings as SettingsIcon,
     LogOut,
-    Menu,
-    X,
     Server,
     Users,
     Globe,
     History,
-    Loader2
+    Loader2,
+    BookOpen,
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -26,6 +25,7 @@ const BatchImport = lazy(() => import('../components/BatchImport'))
 const VercelSyncContainer = lazy(() => import('../features/vercel/VercelSyncContainer'))
 const SettingsContainer = lazy(() => import('../features/settings/SettingsContainer'))
 const ProxyManagerContainer = lazy(() => import('../features/proxy/ProxyManagerContainer'))
+const InstructionsPage = lazy(() => import('../features/instructions/InstructionsPage'))
 
 function TabLoadingFallback({ label }) {
     return (
@@ -42,16 +42,14 @@ export default function DashboardShell({ token, onLogout, config, fetchConfig, s
     const { t } = useI18n()
     const location = useLocation()
     const navigate = useNavigate()
-    const [sidebarOpen, setSidebarOpen] = useState(false)
 
     const navItems = [
-        { id: 'accounts', label: t('nav.accounts.label'), icon: Users, description: t('nav.accounts.desc') },
-        { id: 'proxies', label: t('nav.proxies.label'), icon: Globe, description: t('nav.proxies.desc') },
-        { id: 'test', label: t('nav.test.label'), icon: Server, description: t('nav.test.desc') },
-        { id: 'history', label: t('nav.history.label'), icon: History, description: t('nav.history.desc') },
-        { id: 'import', label: t('nav.import.label'), icon: Upload, description: t('nav.import.desc') },
-        { id: 'vercel', label: t('nav.vercel.label'), icon: Cloud, description: t('nav.vercel.desc') },
-        { id: 'settings', label: t('nav.settings.label'), icon: SettingsIcon, description: t('nav.settings.desc') },
+        { id: 'accounts', label: t('nav.accounts.label'), icon: Users },
+        { id: 'instructions', label: t('nav.instructions.label'), icon: BookOpen },
+        { id: 'test', label: t('nav.test.label'), icon: Server },
+        { id: 'history', label: t('nav.history.label'), icon: History },
+        { id: 'import', label: t('nav.import.label'), icon: Upload },
+        { id: 'settings', label: t('nav.settings.label'), icon: SettingsIcon },
     ]
 
     const tabIds = new Set(navItems.map(item => item.id))
@@ -67,7 +65,6 @@ export default function DashboardShell({ token, onLogout, config, fetchConfig, s
             ? `${adminBasePath || ''}/`
             : `${adminBasePath}/${tabID}`
         navigate(nextPath)
-        setSidebarOpen(false)
     }, [adminBasePath, navigate])
 
     const authFetch = useCallback(async (url, options = {}) => {
@@ -107,6 +104,7 @@ export default function DashboardShell({ token, onLogout, config, fetchConfig, s
             disposed = true
         }
     }, [authFetch])
+
     const renderTab = () => {
         switch (activeTab) {
             case 'accounts':
@@ -117,6 +115,8 @@ export default function DashboardShell({ token, onLogout, config, fetchConfig, s
                 return <ApiTesterContainer config={config} onMessage={showMessage} authFetch={authFetch} />
             case 'history':
                 return <ChatHistoryContainer onMessage={showMessage} authFetch={authFetch} />
+            case 'instructions':
+                return <InstructionsPage />
             case 'import':
                 return <BatchImport onRefresh={fetchConfig} onMessage={showMessage} authFetch={authFetch} />
             case 'vercel':
@@ -129,126 +129,83 @@ export default function DashboardShell({ token, onLogout, config, fetchConfig, s
     }
 
     return (
-        <div className="flex h-screen bg-background overflow-hidden text-foreground">
-            {sidebarOpen && (
-                <div
-                    className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden"
-                    onClick={() => setSidebarOpen(false)}
-                />
-            )}
-
-            <aside className={clsx(
-                "fixed lg:static inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transition-transform duration-300 ease-in-out lg:transform-none flex flex-col shadow-2xl lg:shadow-none",
-                sidebarOpen ? "translate-x-0" : "-translate-x-full"
-            )}>
-                <div className="p-6">
-                    <div className="flex items-center gap-2.5 font-bold text-xl text-foreground tracking-tight">
-                        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20">
-                            <LayoutDashboard className="w-5 h-5" />
-                        </div>
-                        <span>Free DeepSeek</span>
+        <div className="flex flex-col h-screen bg-background overflow-hidden text-foreground">
+            {/* Top Navigation Bar */}
+            <header className="shrink-0 h-14 flex items-center border-b border-border bg-card px-4 gap-2">
+                {/* Logo */}
+                <div className="flex items-center gap-2 mr-4 shrink-0">
+                    <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20">
+                        <LayoutDashboard className="w-4 h-4" />
                     </div>
-                    <div className="flex items-center justify-between mt-2">
-                        <p className="text-[10px] text-muted-foreground font-semibold tracking-[0.1em] uppercase opacity-60 px-1">{t('sidebar.onlineAdminConsole')}</p>
-                    </div>
+                    <span className="font-bold text-sm tracking-tight hidden sm:inline">Free DeepSeek</span>
                 </div>
 
-                <nav className="flex-1 px-3 space-y-1 overflow-y-auto pt-2">
+                {/* Nav Items — horizontal, scrollable */}
+                <nav className="flex-1 flex items-center gap-1 overflow-x-auto scrollbar-none">
                     {navItems.map((item) => {
                         const Icon = item.icon
                         const isActive = activeTab === item.id
                         return (
                             <button
                                 key={item.id}
-                                onClick={() => {
-                                    navigateToTab(item.id)
-                                }}
+                                onClick={() => navigateToTab(item.id)}
                                 className={clsx(
-                                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group border",
+                                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap",
                                     isActive
-                                        ? "bg-secondary text-primary border-border shadow-sm"
-                                        : "text-muted-foreground border-transparent hover:bg-secondary/80 hover:text-foreground"
+                                        ? "bg-primary/10 text-primary"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/80"
                                 )}
                             >
-                                <Icon className={clsx("w-4 h-4 transition-colors", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
-                                <span className="flex-1 text-left">{item.label}</span>
-                                {isActive && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                                <Icon className="w-3.5 h-3.5" />
+                                <span>{item.label}</span>
                             </button>
                         )
                     })}
                 </nav>
 
-                <div className="p-4 border-t border-border bg-card">
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between text-sm px-1">
-                            <span className="text-muted-foreground font-semibold text-[10px] uppercase tracking-wider">{t('sidebar.systemStatus')}</span>
-                            <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                {t('sidebar.statusOnline')}
-                            </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                            <div className="bg-background rounded-lg p-3 border border-border shadow-sm">
-                                <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider mb-0.5 opacity-70">{t('sidebar.accounts')}</div>
-                                <div className="text-lg font-bold text-foreground leading-tight">{config.accounts?.length || 0}</div>
-                            </div>
-                            <div className="bg-background rounded-lg p-3 border border-border shadow-sm">
-                                <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider mb-0.5 opacity-70">{t('sidebar.keys')}</div>
-                                <div className="text-lg font-bold text-foreground">{config.keys?.length || 0}</div>
-                            </div>
-                        </div>
-                        <div className="bg-background rounded-lg p-3 border border-border shadow-sm">
-                            <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider mb-1 opacity-70">{t('sidebar.version')}</div>
-                            <div className="text-xs font-semibold text-foreground">{versionInfo?.current_tag || '-'}</div>
-                            {versionInfo?.has_update && (
-                                <a
-                                    className="inline-flex mt-1 text-[10px] text-amber-500 hover:text-amber-400"
-                                    href={versionInfo?.release_url || 'https://github.com/MrFadiAi/free-deepseek/releases/latest'}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                >
-                                    {t('sidebar.updateAvailable', { latest: versionInfo.latest_tag || '' })}
-                                </a>
-                            )}
-                        </div>
-                        <button
-                            onClick={onLogout}
-                            className="w-full h-10 flex items-center justify-center gap-2 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 transition-all"
+                {/* Right side: version + sign out + credit */}
+                <div className="flex items-center gap-3 shrink-0">
+                    {versionInfo?.current_tag && (
+                        <span className="text-[10px] font-mono text-muted-foreground hidden md:inline">
+                            {versionInfo.current_tag}
+                        </span>
+                    )}
+                    {versionInfo?.has_update && (
+                        <a
+                            className="text-[10px] text-amber-500 hover:text-amber-400 whitespace-nowrap hidden md:inline"
+                            href={versionInfo?.release_url || 'https://github.com/MrFadiAi/free-deepseek/releases/latest'}
+                            target="_blank"
+                            rel="noreferrer"
                         >
-                            <LogOut className="w-3.5 h-3.5" />
-                            {t('sidebar.signOut')}
-                        </button>
-                    </div>
+                            Update {versionInfo.latest_tag}
+                        </a>
+                    )}
+                    <a
+                        href="https://x.com/Mr_CryptoYT"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] text-muted-foreground hover:text-foreground transition-colors hidden sm:flex items-center gap-1"
+                    >
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        Fdy
+                    </a>
+                    <button
+                        onClick={onLogout}
+                        className="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                    >
+                        <LogOut className="w-3.5 h-3.5" />
+                    </button>
                 </div>
-            </aside>
+            </header>
 
+            {/* Main Content */}
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-                <header className="lg:hidden h-14 flex items-center justify-between px-4 border-b border-border bg-card">
-                    <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded bg-primary flex items-center justify-center text-primary-foreground text-[10px]">
-                            <LayoutDashboard className="w-3.5 h-3.5" />
-                        </div>
-                        <span className="font-semibold text-sm">Free DeepSeek</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setSidebarOpen(true)}
-                            className="p-2 -mr-2 text-muted-foreground hover:text-foreground"
-                        >
-                            <Menu className="w-5 h-5" />
-                        </button>
-                    </div>
-                </header>
-
                 <div className="flex-1 overflow-auto bg-background p-4 lg:p-10">
                     <div className="max-w-6xl mx-auto space-y-4 lg:space-y-6">
                         <div className="hidden lg:block mb-8">
                             <h1 className="text-3xl font-bold tracking-tight mb-2">
                                 {activeNavItem?.label}
                             </h1>
-                            <p className="text-muted-foreground">
-                                {activeNavItem?.description}
-                            </p>
                         </div>
 
                         {message && (
@@ -257,7 +214,6 @@ export default function DashboardShell({ token, onLogout, config, fetchConfig, s
                                 message.type === 'error' ? "bg-destructive/10 border-destructive/20 text-destructive" :
                                     "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
                             )}>
-                                {message.type === 'error' ? <X className="w-5 h-5" /> : <div className="w-5 h-5 rounded-full border-2 border-emerald-500 flex items-center justify-center text-[10px]">✓</div>}
                                 {message.text}
                             </div>
                         )}

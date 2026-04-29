@@ -29,6 +29,10 @@
             "label": "Vercel Sync",
             "desc": "Sync configuration to Vercel"
         },
+        "instructions": {
+            "label": "Instructions",
+            "desc": "API integration guides and client setup"
+        },
         "settings": {
             "label": "Settings",
             "desc": "Edit runtime and security settings online"
