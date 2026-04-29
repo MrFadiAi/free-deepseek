@@ -1,6 +1,6 @@
 {
-  "_comment": "DS2API 配置文件示例 - 复制为 config.json 使用",
-  "_doc": "详细文档: https://github.com/CJackHwang/ds2api",
+  "_comment": "DS2API example config - copy to config.json and edit",
+  "_doc": "Documentation: https://github.com/MrFadiAi/free-deepseek",
   "keys": [
     "your-api-key-1",
     "your-api-key-2"
@@ -8,31 +8,31 @@
   "api_keys": [
     {
       "key": "your-api-key-1",
-      "name": "主 API Key",
-      "remark": "给 OpenAI 客户端使用"
+      "name": "Primary API Key",
+      "remark": "For OpenAI clients"
     },
     {
       "key": "your-api-key-2",
-      "name": "备用 API Key",
-      "remark": "压测或临时调试"
+      "name": "Secondary API Key",
+      "remark": "For testing or temporary use"
     }
   ],
   "accounts": [
     {
-      "_comment": "邮箱登录方式",
-      "name": "主账号",
-      "remark": "优先用于生产流量",
+      "_comment": "Email login - account 1",
+      "name": "Primary account",
+      "remark": "Preferred for production traffic",
       "email": "example1@example.com",
       "password": "your-password-1"
     },
     {
-      "_comment": "邮箱登录方式 - 账号2",
-      "name": "备用账号",
+      "_comment": "Email login - account 2",
+      "name": "Secondary account",
       "email": "example2@example.com",
       "password": "your-password-2"
     },
     {
-      "_comment": "手机号登录方式（中国大陆）",
+      "_comment": "Phone login (China mainland)",
       "mobile": "12345678901",
       "password": "your-password-3"
     }
