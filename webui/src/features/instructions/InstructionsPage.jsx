@@ -253,12 +253,76 @@ const models = [
     { id: 'deepseek-v4-pro-nothinking', type: 'Chat', features: 'Pro without thinking' },
 ]
 
-const aliases = [
-    { alias: 'gpt-4o, gpt-4.1, gpt-5, gpt-5.5', resolves: 'deepseek-v4-pro' },
-    { alias: 'o3, o4-mini', resolves: 'deepseek-v4-pro' },
-    { alias: 'claude-opus-4-6, claude-sonnet-4-6', resolves: 'deepseek-v4-pro' },
-    { alias: 'gemini-2.5-pro, gemini-2.5-flash', resolves: 'deepseek-v4-pro' },
-    { alias: 'gpt-5.4-mini, gpt-5.3-codex', resolves: 'deepseek-v4-flash' },
+const aliasGroups = [
+    {
+        family: 'OpenAI ChatGPT',
+        color: 'bg-emerald-500/10 text-emerald-600',
+        mappings: [
+            { alias: 'chatgpt-4o, gpt-4o, gpt-4o-mini', resolves: 'deepseek-v4-flash' },
+            { alias: 'gpt-4, gpt-4-turbo, gpt-4-turbo-preview', resolves: 'deepseek-v4-flash' },
+            { alias: 'gpt-4.5-preview, gpt-4.1, gpt-4.1-mini, gpt-4.1-nano', resolves: 'deepseek-v4-flash' },
+            { alias: 'gpt-5, gpt-5.1, gpt-5.2, gpt-5-mini, gpt-5-nano', resolves: 'deepseek-v4-flash' },
+            { alias: 'gpt-5.4, gpt-5.4-mini, gpt-5.4-nano', resolves: 'deepseek-v4-flash' },
+            { alias: 'gpt-5.5, gpt-5.5-pro', resolves: 'deepseek-v4-pro' },
+            { alias: 'gpt-5-pro, gpt-5.2-pro, gpt-5.4-pro', resolves: 'deepseek-v4-pro' },
+        ],
+    },
+    {
+        family: 'OpenAI Codex',
+        color: 'bg-emerald-500/10 text-emerald-600',
+        mappings: [
+            { alias: 'gpt-5-codex, gpt-5.1-codex, gpt-5.2-codex, gpt-5.3-codex', resolves: 'deepseek-v4-pro' },
+            { alias: 'codex-mini-latest, gpt-5.1-codex-mini, gpt-5.1-codex-max', resolves: 'deepseek-v4-pro' },
+        ],
+    },
+    {
+        family: 'OpenAI Reasoning',
+        color: 'bg-emerald-500/10 text-emerald-600',
+        mappings: [
+            { alias: 'o1, o1-preview, o1-mini, o1-pro', resolves: 'deepseek-v4-pro' },
+            { alias: 'o3, o3-mini, o3-pro', resolves: 'deepseek-v4-pro' },
+            { alias: 'o4-mini', resolves: 'deepseek-v4-pro' },
+            { alias: 'o3-deep-research, o4-mini-deep-research', resolves: 'deepseek-v4-pro-search' },
+        ],
+    },
+    {
+        family: 'Claude',
+        color: 'bg-amber-500/10 text-amber-600',
+        mappings: [
+            { alias: 'claude-opus-4-6, claude-opus-4-1, claude-opus-4-0', resolves: 'deepseek-v4-pro' },
+            { alias: 'claude-opus-4-20250514, claude-opus-4-1-20250805', resolves: 'deepseek-v4-pro' },
+            { alias: 'claude-3-opus, claude-3-opus-20240229', resolves: 'deepseek-v4-pro' },
+            { alias: 'claude-sonnet-4-6, claude-sonnet-4-5, claude-sonnet-4-0', resolves: 'deepseek-v4-flash' },
+            { alias: 'claude-sonnet-4-20250514, claude-sonnet-4-5-20250929', resolves: 'deepseek-v4-flash' },
+            { alias: 'claude-3-7-sonnet, claude-3-7-sonnet-latest', resolves: 'deepseek-v4-flash' },
+            { alias: 'claude-3-5-sonnet, claude-3-5-sonnet-latest', resolves: 'deepseek-v4-flash' },
+            { alias: 'claude-3-sonnet, claude-3-sonnet-20240229', resolves: 'deepseek-v4-flash' },
+            { alias: 'claude-haiku-4-5, claude-3-5-haiku, claude-3-5-haiku-latest', resolves: 'deepseek-v4-flash' },
+            { alias: 'claude-3-haiku, claude-3-haiku-20240307', resolves: 'deepseek-v4-flash' },
+        ],
+    },
+    {
+        family: 'Gemini',
+        color: 'bg-blue-500/10 text-blue-600',
+        mappings: [
+            { alias: 'gemini-2.5-pro, gemini-3-pro, gemini-3.1-pro', resolves: 'deepseek-v4-pro' },
+            { alias: 'gemini-1.5-pro, gemini-pro, gemini-pro-latest', resolves: 'deepseek-v4-pro' },
+            { alias: 'gemini-2.5-flash, gemini-2.5-flash-lite', resolves: 'deepseek-v4-flash' },
+            { alias: 'gemini-3-flash, gemini-3.1-flash, gemini-3.1-flash-lite', resolves: 'deepseek-v4-flash' },
+            { alias: 'gemini-2.0-flash, gemini-2.0-flash-lite', resolves: 'deepseek-v4-flash' },
+            { alias: 'gemini-1.5-flash, gemini-1.5-flash-8b', resolves: 'deepseek-v4-flash' },
+            { alias: 'gemini-flash-latest', resolves: 'deepseek-v4-flash' },
+            { alias: 'gemini-pro-vision', resolves: 'deepseek-v4-vision' },
+        ],
+    },
+    {
+        family: 'Other',
+        color: 'bg-gray-500/10 text-gray-500',
+        mappings: [
+            { alias: 'llama-3.1-70b-instruct', resolves: 'deepseek-v4-flash' },
+            { alias: 'qwen-max', resolves: 'deepseek-v4-flash' },
+        ],
+    },
 ]
 
 const endpoints = [
@@ -445,24 +509,43 @@ export default function InstructionsPage() {
                         </tbody>
                     </table>
                 </div>
-                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-4 mb-2">Popular Aliases</div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b border-border">
-                                <th className="text-left py-2 px-3 font-semibold text-muted-foreground">Alias</th>
-                                <th className="text-left py-2 px-3 font-semibold text-muted-foreground">Resolves To</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {aliases.map((a, i) => (
-                                <tr key={i} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                                    <td className="py-2 px-3 font-mono text-xs">{a.alias}</td>
-                                    <td className="py-2 px-3 font-mono text-xs text-primary">{a.resolves}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-6 mb-3">Model Alias Mappings</div>
+                <p className="text-sm text-muted-foreground mb-3">
+                    Any model name below is automatically resolved to the corresponding DeepSeek model. Append <code className="bg-muted px-1.5 py-0.5 rounded text-xs">-nothinking</code> to any native model to disable thinking.
+                </p>
+                <div className="space-y-4">
+                    {aliasGroups.map((group) => (
+                        <div key={group.family} className="border border-border rounded-lg overflow-hidden">
+                            <div className={clsx('px-4 py-2 font-semibold text-sm', group.color)}>
+                                {group.family}
+                            </div>
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="border-b border-border bg-muted/20">
+                                        <th className="text-left py-1.5 px-4 font-semibold text-muted-foreground text-xs">Alias(es)</th>
+                                        <th className="text-left py-1.5 px-4 font-semibold text-muted-foreground text-xs">Resolves To</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {group.mappings.map((m, i) => (
+                                        <tr key={i} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
+                                            <td className="py-1.5 px-4 font-mono text-xs">{m.alias}</td>
+                                            <td className="py-1.5 px-4 font-mono text-xs text-primary font-medium">{m.resolves}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ))}
+                </div>
+                <div className="mt-4 bg-muted/40 border border-border rounded-lg p-4 space-y-2">
+                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">How Resolution Works</div>
+                    <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                        <li>If the model is a native DeepSeek model (e.g. <code className="bg-muted px-1 py-0.5 rounded text-xs">deepseek-v4-pro</code>), use it directly.</li>
+                        <li>Check the alias table above for an exact match.</li>
+                        <li>For unrecognized models from known families (gpt-, claude-, gemini-), apply heuristic rules based on keywords like <em>vision</em>, <em>reason</em>, <em>opus</em>, <em>search</em>.</li>
+                        <li>Append <code className="bg-muted px-1 py-0.5 rounded text-xs">-nothinking</code> suffix handling.</li>
+                    </ol>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
                     Full model list available at <code className="bg-muted px-1 py-0.5 rounded">{baseUrl}/v1/models</code>
